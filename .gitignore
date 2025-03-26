@@ -274,3 +274,13 @@ pyvenv.cfg
 pip-selfcheck.json
 
 # End of https://www.toptal.com/developers/gitignore/api/python,pycharm+all,venv
+
+# .json files in the data folder
+data/dataset1/
+
+runs/
+ray_results/
+*.pth
+*.pt
+*.npy
+*.npz

@@ -1,3 +1,8 @@
 torch==2.6.0
 torch_geometric==2.6.1
 transformers==4.49.0
+torch-geometric~=2.6.1
+typer~=0.15.2
+tensorboard~=2.19.0
+scikit-learn~=1.6.1
+ray[tune]~=2.44.0

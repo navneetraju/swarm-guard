@@ -20,6 +20,13 @@ class UPFDGraphSageNet(nn.Module):
         self.classifier = nn.Linear(hidden_channels, num_classes)
 
     def forward(self, x, edge_index, batch):
+        """
+        The forward pass
+        :param x: Graph node features
+        :param edge_index: Graph edge indices
+        :param batch: Batch indices
+        :return: (classification_logits, node_embeddings, averaged_graph_level_embedding)
+        """
         h = self.conv1(x, edge_index)
         h = self.bn1(h)
         h = F.relu(h)
@@ -35,6 +42,6 @@ class UPFDGraphSageNet(nn.Module):
         h = F.relu(h)
         h = F.dropout(h, p=self.dropout, training=self.training)
 
-        h = global_mean_pool(h, batch)
-        out = self.classifier(h)
-        return out, h
+        averaged_embedding = global_mean_pool(h, batch)
+        out = self.classifier(averaged_embedding)
+        return out, h, averaged_embedding

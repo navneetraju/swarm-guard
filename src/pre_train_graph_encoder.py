@@ -148,7 +148,7 @@ def create_artificial_imbalance(dataset, ratio=0.4):
     minority_indices = [i for i in indices if dataset[i].y.item() == minority_class]
 
     new_majority_count = int(ratio * len(majority_indices))
-    new_majority_count = max(new_majority_count, 1)  # ensure at least one sample
+    new_majority_count = max(new_majority_count, 1)
 
     selected_indices = torch.randperm(len(majority_indices))[:new_majority_count].tolist()
     selected_majority_indices = [majority_indices[i] for i in selected_indices]
@@ -157,8 +157,6 @@ def create_artificial_imbalance(dataset, ratio=0.4):
     data_list = [dataset[i] for i in new_indices]
     new_data, new_slices = InMemoryDataset.collate(data_list)
 
-    # Instead of creating a new instance (which requires a missing attribute),
-    # we update the dataset in place.
     dataset.data = new_data
     dataset.slices = new_slices
     return dataset
@@ -226,9 +224,10 @@ def run_single_train(
         batch_size: int,
         patience: int = 10,
         save_model: bool = False,
-        saved_model_path: str = "graph_encoder.pth",
+        saved_model_path: str = "../models/graph/graph_encoder.pth",
         write_to_tensorboard: bool = False,
-        tensorboard_log_dir: str = "./runs"
+        tensorboard_log_dir: str = "./runs",
+        include_config: bool = False  # Flag to include model config when saving
 ):
     """
     A single training run using the provided hyperparameters.
@@ -290,14 +289,36 @@ def run_single_train(
         writer.close()
 
     if save_model:
-        torch.save(model.state_dict(), saved_model_path)
+        # Ensure that the model directory exists.
+        model_dir = os.path.dirname(saved_model_path)
+        os.makedirs(model_dir, exist_ok=True)
+
+        if include_config:
+            # Save a dictionary with both the model state and the configuration.
+            model_config = {
+                "in_channels": in_channels,
+                "hidden_channels": hidden_channels,
+                "out_channels": num_classes,
+                "dropout": dropout,
+                "lr": lr,
+                "weight_decay": weight_decay,
+                "batch_size": batch_size,
+                "epochs": epochs
+            }
+            torch.save({"model_state_dict": model.state_dict(), "config": model_config}, saved_model_path)
+            # Save the config file in the same folder.
+            config_file = os.path.join(model_dir, "graph_encoder_config.json")
+            with open(config_file, "w") as f:
+                json.dump(model_config, f)
+        else:
+            torch.save(model.state_dict(), saved_model_path)
 
     return test_acc
 
 
 def train_with_tune(config, max_epochs, val_dataset):
     """
-    Train function for Ray Tune. config is a dict of hyperparams from the search space.
+    Train function for Ray Tune. Config is a dict of hyperparameters from the search space.
     We do a short run, then we report val_loss to Ray.
     """
     if isinstance(val_dataset, ConcatDataset):
@@ -353,6 +374,15 @@ def hyperparam_search(max_epochs: int, num_samples: int, local_dir: str, saved_c
     best_config = analysis.get_best_config(metric="val_loss", mode="min")
     print("Best config found:", best_config)
 
+    # Augment best_config with dataset-derived parameters.
+    if isinstance(val_dataset, ConcatDataset):
+        best_config["in_channels"] = val_dataset.datasets[0].num_features
+        best_config["out_channels"] = val_dataset.datasets[0].num_classes
+    else:
+        best_config["in_channels"] = val_dataset.num_features
+        best_config["out_channels"] = val_dataset.num_classes
+
+    # Save the best config in the designated path.
     if not os.path.exists(os.path.dirname(saved_config_path)):
         os.makedirs(os.path.dirname(saved_config_path))
     with open(saved_config_path, "w") as f:
@@ -374,15 +404,21 @@ def main(
         batch_size: int = typer.Option(128, help="Batch size if not tuning"),
         combine: bool = typer.Option(True, help="Whether to combine Politifact + GossipCop"),
         epochs: int = typer.Option(30, help="Number of epochs for training/tuning"),
-        model_output_path: str = typer.Option("../models/graph_encoder.pth", help="Where to save final model"),
+        # Default model output path now in ../models/graph subfolder.
+        model_output_path: str = typer.Option("../models/graph/graph_encoder.pth", help="Where to save final model"),
 ):
     """
-    If --tuning=False, run a single training with the provided hyperparams.
+    If --tuning=False, run a single training with the provided hyperparameters.
     If --tuning=True, do Ray Tune hyperparam search, store best config, then do a final train with that config.
     """
     train_dataset, val_dataset, test_dataset = load_datasets(combine)
 
     if tuning:
+        # Define model directory based on model_output_path
+        model_dir = os.path.dirname(model_output_path)
+        os.makedirs(model_dir, exist_ok=True)
+        # Save best config JSON in the same folder as model.
+        saved_config_path = os.path.join(model_dir, "best_config.json")
         tensorboard_log_dir = f"./runs/{datetime.now().strftime('%Y%m%d-%H%M%S')}"
         ray.init(ignore_reinit_error=True)
 
@@ -390,7 +426,7 @@ def main(
             max_epochs=epochs,
             num_samples=10,
             local_dir="./ray_results",
-            saved_config_path=f"{tensorboard_log_dir}/best_config.json",
+            saved_config_path=saved_config_path,
             val_dataset=val_dataset
         )
 
@@ -423,7 +459,8 @@ def main(
             epochs=epochs,
             batch_size=batch_size,
             save_model=True,
-            saved_model_path=model_output_path
+            saved_model_path=model_output_path,
+            include_config=True  # Save both state dict and model config
         )
         print(f"[NO-TUNING] Final test acc = {final_test_acc:.4f}")
 

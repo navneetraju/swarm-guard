@@ -284,6 +284,11 @@ ray_results/
 *.pt
 *.npy
 *.npz
+
 .gitignore
 dataset
 
+
+# Notebooks
+notebooks/preprocess_pipeline.ipynb
+notebooks/eda.ipynb

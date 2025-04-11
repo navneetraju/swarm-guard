@@ -6,7 +6,7 @@ from torch.utils.data import Dataset
 from torch_geometric.data import Data, Batch
 
 
-class AstroRAgDataset(Dataset):
+class AstroRagDataset(Dataset):
     def __init__(self,json_dir,text_tokenizer, max_length=256,use_all_node_text=False):
 
         """

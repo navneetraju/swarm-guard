@@ -275,7 +275,6 @@ pip-selfcheck.json
 
 # End of https://www.toptal.com/developers/gitignore/api/python,pycharm+all,venv
 
-<<<<<<< HEAD
 # .json files in the data folder
 data/dataset1/
 
@@ -285,8 +284,6 @@ ray_results/
 *.pt
 *.npy
 *.npz
-=======
 .gitignore
 dataset
 
->>>>>>> hitesh_personal

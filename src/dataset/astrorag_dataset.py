@@ -1,25 +1,25 @@
-import os 
-import json 
+import json
+import os
 
 import torch
 from torch.utils.data import Dataset
 from torch_geometric.data import Data, Batch
+from transformers import AutoTokenizer
 
 
 class AstroRagDataset(Dataset):
-    def __init__(self,json_dir,text_tokenizer, max_length=256,use_all_node_text=False):
-
+    def __init__(self, json_dir, model_id, max_length=256, use_all_node_text=False):
         """
         Dataset for loading and processing the AstroRAg dataset.
-        Args:
-            :params json_dir (str): Dir->JSON files.
-            :params text_tokenizer (Tokenizer): Tokenizer
-            :params max_length (int): Maximum length for tokenized text.
-            :params use_all_node_text (bool): If True, use all node text for each graph. (let me know if you want to change this)
-        """
 
+        Args:
+            json_dir (str): Directory containing JSON files.
+            model_id (str): Pretrained model identifier for tokenization.
+            max_length (int): Maximum length for tokenized text.
+            use_all_node_text (bool): If True, use all node text for each graph.
+        """
         self.json_dir = json_dir
-        self.text_tokenizer = text_tokenizer
+        self.text_tokenizer = AutoTokenizer.from_pretrained(model_id)
         self.max_length = max_length
         self.use_all_node_text = use_all_node_text
 
@@ -28,173 +28,153 @@ class AstroRagDataset(Dataset):
 
     def _load_json_files(self):
         """
-        Load all JSON files from Dir
+        Load all JSON files from the directory.
         """
         if not os.path.exists(self.json_dir):
             raise ValueError(f"JSON directory {self.json_dir} does not exist.")
-        
+
         for filename in os.listdir(self.json_dir):
             if filename.endswith('.json'):
                 file_path = os.path.join(self.json_dir, filename)
                 with open(file_path, 'r', encoding='utf-8') as f:
                     data = json.load(f)
-                    label = 1 if data.get('label','').lower() == 'real' else 0
+                    # Map "real" -> 0, "fake" -> 1 (same as graph-only dataset)
+                    label = 0 if data.get('label', 'real').lower() == 'real' else 1
 
                     self.samples.append({
                         'file_path': file_path,
                         'label': label,
                     })
+
     def __len__(self):
         """
         Returns the number of samples in the dataset.
         """
         return len(self.samples)
-    
+
     def _process_graph(self, data):
         """
-        Process graph data from JSON
-        
+        Process graph data from JSON.
+
         Args:
-           :params data (dict): Loaded JSON data
-            
+            data (dict): Loaded JSON data.
+
         Returns:
-            Data: PyTorch Geometric Data object and text data
+            graph (Data): PyTorch Geometric Data object.
+            text_data (list): List of text strings from nodes.
         """
         nodes = data.get('nodes', [])
         edges = data.get('edges', [])
 
-        # Creates Edge List
-        # i.e node ID mapping for edges construction 
         node_id_map = {}
-
-        # Extract node features and text
         node_features = []
         text_data = []
 
-        # I'm gonna extract following features 
-        # TODO: Can be modfied later (Optional)
-        feature_names = ['followers_count', 'following_count', 'verified',
-            'protected', 'favourites_count', 'listed_count', 'statuses_count', 'delay'
-        ]
         for idx, node in enumerate(nodes):
-            # First convert node ID to index
-            node_id_map[node.get('id')] = idx
-            # Extract features
-            features = []
-            for feature in feature_names:
-                value = node.get(feature, 0)
-                features.append(float(value)) # Convert to float for numerical stability
-            
-            node_features.append(features)
-            text_data.append(node.get('tweet_text', ''))
+            node_id = node.get('id')
+            node_id_map[node_id] = idx
 
-        # Process edges to create edge_index
+            # Extract features following the graph-only dataset transformation:
+            verified = int(node.get('verified', 0))
+            followers_count = node.get('followers_count', 0)
+            following_count = node.get('following_count', 0)
+            statuses_count = node.get('statuses_count', 0)
+            favourites_count = node.get('favourites_count', 0)
+            listed_count = node.get('listed_count', 0)
+            description = node.get('associated_user_profile_description', "") or ""
+            description_word_count = len(description.split())
+            tweet_text = node.get('tweet_text', "") or ""
+            tweet_word_count = len(tweet_text.split())
+            delay = node.get('delay', 0)
+
+            features = [
+                verified,
+                followers_count,
+                following_count,
+                statuses_count,
+                favourites_count,
+                listed_count,
+                description_word_count,
+                delay,
+                tweet_word_count
+            ]
+            node_features.append(features)
+            text_data.append(tweet_text)
+
+        # Process edges to create edge_index tensor
         edge_pairs = []
         for edge in edges:
-            source_idx = node_id_map.get(edge.get('source')) 
+            source_idx = node_id_map.get(edge.get('source'))
             target_idx = node_id_map.get(edge.get('target'))
-            
             if source_idx is not None and target_idx is not None:
                 edge_pairs.append((source_idx, target_idx))
 
-        # Convert node features to tensor
-        if node_features:
-            x = torch.tensor(node_features, dtype=torch.float)
-        else:
-            x = torch.zeros((0, len(feature_names)), dtype=torch.float)
-        
-        # Convert edge_index to tensor, ensuring proper format for PyG
-        # Convert edge list to PyTorch tensor(edge_index)
-        # Stored column-wise (i.e., first row contains source nodes, second row contains target nodes)
+        # Create a tensor of node features
+        x = torch.tensor(node_features, dtype=torch.float) if node_features else torch.zeros((0, 9), dtype=torch.float)
+
+        # Create edge_index tensor
         if edge_pairs:
-            edge_index = torch.tensor(edge_pairs, dtype=torch.long).t().contiguous() 
+            edge_index = torch.tensor(edge_pairs, dtype=torch.long).t().contiguous()
         else:
             edge_index = torch.zeros((2, 0), dtype=torch.long)
 
-        # Create a PyTorch Geometric Data object (graph)
-        # Sample format: [num_nodes, num_features]
-        # The graph object will contain the node features and edge indices
-        # (See https://pytorch-geometric.readthedocs.io/en/latest/notes/introduction.html#data-handling-of-graphs)
-
-        # Note: num_nodes is the number of nodes in the graph
-        # Note: num_features is the number of features per node
-        # Note: num_edges is the number of edges in the graph
-
-      
-        graph = Data(
-            x=x, 
-            edge_index=edge_index,
-            num_nodes=len(nodes)
-        )
-        
+        graph = Data(x=x, edge_index=edge_index, num_nodes=len(nodes))
         return graph, text_data
-    
 
     def _get_text_input(self, text_data):
         """
-        Process text data 
-        
+        Process text data using the tokenizer.
+
         Args:
-           :params text_data (list): strings from nodes
-            
+            text_data (list): List of text strings from nodes.
+
         Returns:
-            dict: Tokenized text for model input
+            dict: Tokenized text inputs containing input_ids and attention_mask.
         """
         if not text_data:
-            # Fallback: for empty text (Returns zeros)
-            # TODO: Let me know if you want to change this 
-            return {
-                'input_ids': torch.zeros(self.max_text_length, dtype=torch.long),
-                'attention_mask': torch.zeros(self.max_text_length, dtype=torch.long)
-            }
-        
+            raise ValueError("No text data available for tokenization for this sample.")
+
         if self.use_all_node_text:
-            # Combine all texts with separator
-            # When we combine all node texts, we can use a separator to distinguish them (optional)
+            # Combine all node texts if required
             combined_text = " ".join(text for text in text_data if text)
             text_to_process = combined_text
         else:
-            # Use only the root node text (first node)
-            # TODO: Again, let me know if you want to change this 
+            # Use only the text from the first node
             text_to_process = text_data[0] if text_data else ""
-        
-        # Embeddings for text
-        encoding = self.tokenizer(
+
+        encoding = self.text_tokenizer(
             text_to_process,
             padding='max_length',
             truncation=True,
-            max_length=self.max_text_length,
+            max_length=self.max_length,
             return_tensors='pt'
         )
-        
-        return {
-            'input_ids': encoding['input_ids'].squeeze(0), # Shape: [max_length]
-            'attention_mask': encoding['attention_mask'].squeeze(0) # Shape: [max_length]
-        }
 
+        return {
+            'input_ids': encoding['input_ids'].squeeze(0),  # Shape: [max_length]
+            'attention_mask': encoding['attention_mask'].squeeze(0)  # Shape: [max_length]
+        }
 
     def __getitem__(self, idx):
         """
-        Get a sample from the dataset
+        Get a sample from the dataset.
+
         Args:
-            :params idx (int): Index to retrieve.
+            idx (int): Index to retrieve.
 
         Returns:
-            tuple: (graph_data,label).
-
+            tuple: (data_dict, label) where data_dict contains graph and text inputs.
         """
-
         sample = self.samples[idx]
-        json_path = sample['json_path']
+        json_path = sample['file_path']  # Fix: use 'file_path' as stored
         label = sample['label']
+
         with open(json_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
-        
 
-        graph, text_data = self._process_graph(data) # Graph data
-        text_inputs = self._get_text_input(text_data) # Text data
-        
-        # Return the graph_data dic and label
+        graph, text_data = self._process_graph(data)
+        text_inputs = self._get_text_input(text_data)
+
         return {
             'text_input_ids': text_inputs['input_ids'],
             'text_attention_mask': text_inputs['attention_mask'],
@@ -202,32 +182,25 @@ class AstroRagDataset(Dataset):
         }, label
 
 
+def astrorag_collate_fn(batch):
+    """
+    Collate function for the AstroRag dataset.
 
-    def astrorag_collate_fn(batch):
-        """
-        Collate function for the AstroRag dataset
-        
-        Args:
-            :params batch: List of (data_dict, label)
-        
-        Returns:
-            dict: Batch of data(text and graph) and labels
-        """
-        data_dicts, labels = zip(*batch)
-        # Stack image tensors (pixel_values) into a batch.
-        # Convert text input IDs and attention masks to tensors
-        text_input_ids = torch.stack([d['text_input_ids'] for d in data_dicts])
-        text_attention_mask = torch.stack([d['text_attention_mask'] for d in data_dicts])
-        
-        # Batch the graph data using PyG's Batch
-        graphs = Batch.from_data_list([d['graph_data'] for d in data_dicts])
-        
-        # Convert labels to tensor 
-        labels = torch.tensor(labels, dtype=torch.long)
-        
-        return {
-            'text_input_ids': text_input_ids,
-            'text_attention_mask': text_attention_mask,
-            'graph_data': graphs,
-            'labels': labels
-        } 
+    Args:
+        batch (list): List of (data_dict, label) tuples.
+
+    Returns:
+        dict: A dictionary containing batched text inputs, graph data, and labels.
+    """
+    data_dicts, labels = zip(*batch)
+    text_input_ids = torch.stack([d['text_input_ids'] for d in data_dicts])
+    text_attention_mask = torch.stack([d['text_attention_mask'] for d in data_dicts])
+    graphs = Batch.from_data_list([d['graph_data'] for d in data_dicts])
+    labels = torch.tensor(labels, dtype=torch.long)
+
+    return {
+        'text_input_ids': text_input_ids,
+        'text_attention_mask': text_attention_mask,
+        'graph_data': graphs,
+        'labels': labels
+    }

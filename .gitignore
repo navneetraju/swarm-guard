@@ -286,7 +286,6 @@ ray_results/
 *.npz
 
 .gitignore
-dataset
 
 
 # Notebooks

@@ -13,15 +13,13 @@ from torch.utils.data import ConcatDataset, Subset
 from torch.utils.tensorboard import SummaryWriter
 from torch_geometric.loader import DataLoader
 
-from src.helpers.dataset_helpers import compute_class_weights, load_astroturf_datasets, graph_dataset_stats
+from src.helpers.dataset_helpers import load_astroturf_datasets, graph_dataset_stats
 from src.helpers.device_helpers import get_device
 from src.helpers.early_stopping import EarlyStopping
 from src.modules.graph_encoder import UPFDGraphSageNet
+from src.modules.loss.focal_loss import FocalLoss
 
 
-# ---------------------------
-# Helper Functions
-# ---------------------------
 def downsample_majority_class(dataset, majority_label=0):
     """
     Downsamples the majority class in a dataset.
@@ -71,9 +69,6 @@ def get_dataset_attributes(dataset):
     return in_channels, num_classes
 
 
-# ---------------------------
-# Training Functions
-# ---------------------------
 def train_one_epoch(model, loader, optimizer, device, criterion):
     model.train()
     total_loss = 0.0
@@ -144,11 +139,11 @@ def run_single_train(
         focal_alpha: float = 1.0,
         focal_gamma: float = 2.0,
         patience: int = 10,
-        save_model: bool = False,
-        saved_model_path: str = "../models/graph/graph_encoder.pth",
+        save_model: bool = True,
+        saved_model_path: str = "../models/graph/",
         write_to_tensorboard: bool = False,
         tensorboard_log_dir: str = "./runs",
-        include_config: bool = False
+        include_config: bool = True
 ):
     """
     Performs one training run with the provided hyperparameters.
@@ -170,9 +165,8 @@ def run_single_train(
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
 
-    # By default, we are using a standard CrossEntropyLoss with class weights.
-    weights = compute_class_weights(train_dataset, device)
-    criterion = torch.nn.CrossEntropyLoss(weight=weights)
+    # Use FocalLoss instead of CrossEntropyLoss.
+    criterion = FocalLoss(alpha=focal_alpha, gamma=focal_gamma, reduction="mean")
 
     early_stopper = EarlyStopping(patience=patience, verbose=True, mode="max")
     writer = SummaryWriter(log_dir=tensorboard_log_dir) if write_to_tensorboard else None
@@ -209,7 +203,7 @@ def run_single_train(
     if write_to_tensorboard:
         writer.close()
 
-    # Save the final model + config (if requested) to models/graph/
+    # Save the final model along with configuration to the same directory.
     if save_model:
         os.makedirs(os.path.dirname(saved_model_path), exist_ok=True)
         model_config = {
@@ -224,21 +218,15 @@ def run_single_train(
             "focal_alpha": focal_alpha,
             "focal_gamma": focal_gamma
         }
-        if include_config:
-            # Save both state dict + config in the .pth
-            state = {
-                "model_state_dict": model.state_dict(),
-                "config": model_config
-            }
-            torch.save(state, saved_model_path)
-
-            # Additionally, save config to "graph_encoder_config.json"
-            config_path = os.path.join(os.path.dirname(saved_model_path), "graph_encoder_config.json")
-            with open(config_path, "w") as f:
-                json.dump(model_config, f)
-        else:
-            # Only save weights
-            torch.save(model.state_dict(), saved_model_path)
+        state = {
+            "model_state_dict": model.state_dict(),
+            "config": model_config
+        }
+        print(f"Saving model to {saved_model_path}/graph_encoder.pth")
+        torch.save(state, f"{saved_model_path}/graph_encoder.pth")
+        print(f"Saving model config to {saved_model_path}/graph_encoder_config.json")
+        with open(f"{saved_model_path}/graph_encoder_config.json", "w") as f:
+            json.dump(model_config, f)
 
     return test_roc_auc
 
@@ -270,21 +258,27 @@ def train_with_tune(config, max_epochs, val_dataset):
 
     val_loader = DataLoader(val_dataset, batch_size=config["batch_size"], shuffle=False)
     optimizer = torch.optim.AdamW(model.parameters(), lr=config["lr"], weight_decay=config["weight_decay"])
-    weights = compute_class_weights(val_dataset, device)
-    criterion = torch.nn.CrossEntropyLoss(weight=weights)
+    # Use focal loss for tuning as well.
+    criterion = FocalLoss(alpha=config["focal_alpha"], gamma=config["focal_gamma"], reduction="mean")
 
     for epoch in range(1, max_epochs + 1):
-        # Dummy train logic for Ray Tune
+        for data in val_loader:
+            data = data.to(device)
+            optimizer.zero_grad()
+            out, _, _ = model(data.x, data.edge_index, data.batch)
+            loss = criterion(out, data.y)
+            loss.backward()
+            optimizer.step()
         val_roc_auc = evaluate_auc(model, val_loader, device)
         tune.report({"val_roc_auc": val_roc_auc})
 
 
 def hyperparam_search(max_epochs: int, num_samples: int, local_dir: str, saved_config_path: str, val_dataset):
     """
-    Defines the search space and runs Ray Tune with Focal Loss hyperparams (focal_alpha, focal_gamma).
+    Defines the search space and runs Ray Tune with Focal Loss hyperparams.
     """
     search_space = {
-        "hidden_channels": tune.choice([64, 128, 256, 512, 1024]),
+        "hidden_channels": tune.choice([64, 128, 256, 512, 728, 1024]),
         "dropout": tune.uniform(0.0, 0.6),
         "lr": tune.loguniform(1e-4, 9e-2),
         "weight_decay": tune.loguniform(1e-6, 1e-3),
@@ -321,7 +315,6 @@ def hyperparam_search(max_epochs: int, num_samples: int, local_dir: str, saved_c
         labels = [data.y.item() for data in underlying]
         num_classes = int(max(labels)) + 1
 
-    # Add them for completeness
     best_config["in_channels"] = in_channels
     best_config["num_classes"] = num_classes
 
@@ -344,7 +337,9 @@ def main(
         lr: float = typer.Option(0.001, help="Learning rate (if not tuning)"),
         weight_decay: float = typer.Option(5e-4, help="Weight decay (if not tuning)"),
         batch_size: int = typer.Option(128, help="Batch size (if not tuning)"),
-        epochs: int = typer.Option(30, help="Number of epochs to train/tune"),
+        epochs: int = typer.Option(30, help="Number of epochs to train"),
+        patience: int = typer.Option(10, help="Patience for early stopping"),
+        tune_max_epochs: int = typer.Option(30, help="Max epochs for tuning"),
         model_output_path: str = typer.Option("../models/graph/graph_encoder.pth", help="Where to save the model"),
         downsample: bool = typer.Option(True, help="Whether to downsample the majority class in the training set")
 ):
@@ -372,7 +367,6 @@ def main(
     print(f" - Test: {len(test_dataset)} samples")
     graph_dataset_stats(test_dataset)
 
-    # Perform tuning or direct training
     if tuning:
         model_dir = os.path.dirname(model_output_path)
         os.makedirs(model_dir, exist_ok=True)
@@ -380,16 +374,14 @@ def main(
         tensorboard_log_dir = f"./runs/{datetime.now().strftime('%Y%m%d-%H%M%S')}"
         ray.init(ignore_reinit_error=True)
 
-        # Hyperparam search
         best_config = hyperparam_search(
-            max_epochs=epochs,
+            max_epochs=tune_max_epochs,
             num_samples=10,
             local_dir="./ray_results",
             saved_config_path=saved_config_path,
             val_dataset=val_dataset
         )
 
-        # Final train using best hyperparams
         final_test_roc_auc = run_single_train(
             train_dataset=train_dataset,
             val_dataset=val_dataset,
@@ -405,12 +397,13 @@ def main(
             save_model=True,
             saved_model_path=model_output_path,
             write_to_tensorboard=True,
-            tensorboard_log_dir=tensorboard_log_dir
+            tensorboard_log_dir=tensorboard_log_dir,
+            include_config=True,
+            patience=patience
         )
         print(f"[TUNING] Final test ROC AUC with best config = {final_test_roc_auc:.4f}")
         ray.shutdown()
     else:
-        # Single training run with the specified hyperparameters
         final_test_roc_auc = run_single_train(
             train_dataset=train_dataset,
             val_dataset=val_dataset,
@@ -425,7 +418,8 @@ def main(
             focal_gamma=2.0,  # Default focal gamma
             save_model=True,
             saved_model_path=model_output_path,
-            include_config=True  # Save JSON config along with .pth
+            include_config=True,  # Save JSON config along with .pth
+            patience=patience,
         )
         print(f"[NO-TUNING] Final test ROC AUC = {final_test_roc_auc:.4f}")
 

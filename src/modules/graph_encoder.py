@@ -1,21 +1,24 @@
 import torch.nn as nn
 import torch.nn.functional as F
-from torch_geometric.nn import SAGEConv, global_mean_pool, BatchNorm
+from torch_geometric.nn import SAGEConv, global_mean_pool, LayerNorm
 
 
 class UPFDGraphSageNet(nn.Module):
     def __init__(self, in_channels, hidden_channels, num_classes, dropout=0.3):
         super(UPFDGraphSageNet, self).__init__()
+        self.in_channels = in_channels
+        self.hidden_channels = hidden_channels
+        self.num_classes = num_classes
         self.dropout = dropout
 
         self.conv1 = SAGEConv(in_channels, hidden_channels)
-        self.bn1 = BatchNorm(hidden_channels)
+        self.norm1 = LayerNorm(hidden_channels)
 
         self.conv2 = SAGEConv(hidden_channels, hidden_channels)
-        self.bn2 = BatchNorm(hidden_channels)
+        self.norm2 = LayerNorm(hidden_channels)
 
         self.conv3 = SAGEConv(hidden_channels, hidden_channels)
-        self.bn3 = BatchNorm(hidden_channels)
+        self.norm3 = LayerNorm(hidden_channels)
 
         self.classifier = nn.Linear(hidden_channels, num_classes)
 
@@ -27,21 +30,21 @@ class UPFDGraphSageNet(nn.Module):
         :param batch: Batch indices
         :return: (classification_logits, node_embeddings, averaged_graph_level_embedding)
         """
-        h = self.conv1(x, edge_index)
-        h = self.bn1(h)
-        h = F.relu(h)
-        h = F.dropout(h, p=self.dropout, training=self.training)
+        h1 = self.conv1(x, edge_index)
+        h1 = F.relu(h1)
+        h1 = F.dropout(h1, p=self.dropout, training=self.training)
+        h1 = self.norm1(h1)
 
-        h = self.conv2(h, edge_index)
-        h = self.bn2(h)
-        h = F.relu(h)
-        h = F.dropout(h, p=self.dropout, training=self.training)
+        h2 = self.conv2(h1, edge_index)
+        h2 = F.relu(h2)
+        h2 = F.dropout(h2, p=self.dropout, training=self.training)
+        h2 = self.norm2(h2 + h1)
 
-        h = self.conv3(h, edge_index)
-        h = self.bn3(h)
-        h = F.relu(h)
-        h = F.dropout(h, p=self.dropout, training=self.training)
+        h3 = self.conv3(h2, edge_index)
+        h3 = F.relu(h3)
+        h3 = F.dropout(h3, p=self.dropout, training=self.training)
+        h3 = self.norm3(h2 + h3)
 
-        averaged_embedding = global_mean_pool(h, batch)
+        averaged_embedding = global_mean_pool(h3, batch)
         out = self.classifier(averaged_embedding)
-        return out, h, averaged_embedding
+        return out, h3, averaged_embedding

@@ -7,8 +7,8 @@ from torch_geometric.data import Data, Batch
 from transformers import AutoTokenizer
 
 
-class AstroRagDataset(Dataset):
-    def __init__(self, json_dir, model_id, max_length=256, use_all_node_text=False):
+class AstroturfCampaignMultiModalDataset(Dataset):
+    def __init__(self, json_dir, model_id, max_length=280, use_all_node_text=False):
         """
         Dataset for loading and processing the AstroRAg dataset.
 
@@ -38,7 +38,7 @@ class AstroRagDataset(Dataset):
                 file_path = os.path.join(self.json_dir, filename)
                 with open(file_path, 'r', encoding='utf-8') as f:
                     data = json.load(f)
-                    # Map "real" -> 0, "fake" -> 1 (same as graph-only dataset)
+                    # Map "real" -> 0, "fake" -> 1 (same as the graph-only dataset)
                     label = 0 if data.get('label', 'real').lower() == 'real' else 1
 
                     self.samples.append({
@@ -52,7 +52,7 @@ class AstroRagDataset(Dataset):
         """
         return len(self.samples)
 
-    def _process_graph(self, data):
+    def _process_graph(self, data, label):
         """
         Process graph data from JSON.
 
@@ -118,7 +118,9 @@ class AstroRagDataset(Dataset):
         else:
             edge_index = torch.zeros((2, 0), dtype=torch.long)
 
-        graph = Data(x=x, edge_index=edge_index, num_nodes=len(nodes))
+        # Create the PyTorch Geometric Data object.
+        graph = Data(x=x, edge_index=edge_index, num_nodes=len(nodes),
+                     y=torch.tensor([label], dtype=torch.long))
         return graph, text_data
 
     def _get_text_input(self, text_data):
@@ -163,16 +165,16 @@ class AstroRagDataset(Dataset):
             idx (int): Index to retrieve.
 
         Returns:
-            tuple: (data_dict, label) where data_dict contains graph and text inputs.
+            tuple: (data_dict, label) where data_dict contains graph data and text inputs.
         """
         sample = self.samples[idx]
-        json_path = sample['file_path']  # Fix: use 'file_path' as stored
+        json_path = sample['file_path']
         label = sample['label']
 
         with open(json_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
 
-        graph, text_data = self._process_graph(data)
+        graph, text_data = self._process_graph(data, label)
         text_inputs = self._get_text_input(text_data)
 
         return {

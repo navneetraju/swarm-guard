@@ -1,6 +1,6 @@
-from .astrorag_dataset import AstroRagDataset, astrorag_collate_fn
+from .astrorag_dataset import AstroturfCampaignMultiModalDataset, astrorag_collate_fn
 
 __all__ = [
-    'AstroRagDataset',
+    'AstroturfCampaignMultiModalDataset',
     'astrorag_collate_fn'
 ]

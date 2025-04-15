@@ -1,0 +1,1099 @@
+(.venv)(base) ~/git/research/swarm-guard git:[main]
+python3 -m src.pre_train_graph_encoder --tuning --dataset-root=/Users/navneet/git/research/brag-fake-news-campaigns/dataset1 --model-output-path /Users/navneet/git/research/swarm-guard/models/graph --epochs 200 --tune-max-epochs 15 --patience 15
+/Users/navneet/git/research/swarm-guard/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Total training samples: 8064
+/Users/navneet/git/research/swarm-guard/.venv/lib/python3.9/site-packages/torch_geometric/data/in_memory_dataset.py:300: UserWarning: It is not recommended to directly access the internal storage format `data` of an 'InMemoryDataset'. If you are absolutely certain what you are doing, access the internal storage via `InMemoryDataset._data` instead to suppress this warning. Alternatively, you can access stacked individual attributes of every graph via `dataset.{attr_name}`.
+  warnings.warn(msg)
+Before downsampling: 7224 majority samples, 840 minority samples.
+After downsampling: 840 majority samples, 840 minority samples, total: 1680 samples.
+Dataset Loaded:
+ - Train: 1680 samples
+Dataset statistics:
+  Number of Graphs: 1680
+  Feature Dimension: 9
+  Total Edges: 55911
+  Class Distribution:
+    Class 0: 840 samples
+    Class 1: 840 samples
+ - Val: 1613 samples
+Dataset statistics:
+  Number of Graphs: 1613
+  Feature Dimension: 9
+  Total Edges: 54213
+  Class Distribution:
+    Class 0: 1463 samples
+    Class 1: 150 samples
+ - Test: 3972 samples
+Dataset statistics:
+  Number of Graphs: 3972
+  Feature Dimension: 9
+  Total Edges: 136315
+  Class Distribution:
+    Class 0: 3570 samples
+    Class 1: 402 samples
+2025-04-13 22:54:37,927 INFO worker.py:1852 -- Started a local Ray instance.
+(raylet) /Users/navneet/git/research/swarm-guard/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+(raylet)   warnings.warn(
+╭────────────────────────────────────────────────────────────────────────╮
+│ Configuration for experiment     train_with_tune_2025-04-13_22-54-50   │
+├────────────────────────────────────────────────────────────────────────┤
+│ Search algorithm                 BasicVariantGenerator                 │
+│ Scheduler                        AsyncHyperBandScheduler               │
+│ Number of trials                 10                                    │
+╰────────────────────────────────────────────────────────────────────────╯
+
+View detailed results here: /Users/navneet/git/research/swarm-guard/ray_results/train_with_tune_2025-04-13_22-54-50
+To visualize your results with TensorBoard, run: `tensorboard --logdir /tmp/ray/session_2025-04-13_22-54-37_134569_39293/artifacts/2025-04-13_22-54-50/train_with_tune_2025-04-13_22-54-50/driver_artifacts`
+
+Trial status: 10 PENDING
+Current time: 2025-04-13 22:54:50. Total running time: 0s
+Logical resource usage: 8.0/8 CPUs, 0/0 GPUs
+╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ Trial name                    status       hidden_channels     dropout            lr     weight_decay     batch_size     focal_alpha     focal_gamma │
+├──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ train_with_tune_facc3_00000   PENDING                  256    0.507246   0.000288529      6.59307e-05            128        0.997271         2.21179 │
+│ train_with_tune_facc3_00001   PENDING                   64    0.295402   0.00158042       7.64928e-06            128        0.308114         1.3937  │
+│ train_with_tune_facc3_00002   PENDING                 1024    0.316341   0.000131028      7.37678e-05            256        0.810002         2.57348 │
+│ train_with_tune_facc3_00003   PENDING                  256    0.505955   0.000174578      0.000926873            512        0.310959         2.71251 │
+│ train_with_tune_facc3_00004   PENDING                   64    0.435551   0.0189009        2.80363e-05            256        0.47889          3.21004 │
+│ train_with_tune_facc3_00005   PENDING                  256    0.197156   0.000308533      3.77954e-06            512        0.41227          3.38678 │
+│ train_with_tune_facc3_00006   PENDING                 1024    0.569909   0.0002058        1.43107e-05            512        0.113259         1.374   │
+│ train_with_tune_facc3_00007   PENDING                  512    0.421353   0.086047         7.78725e-05            256        0.216891         4.64121 │
+│ train_with_tune_facc3_00008   PENDING                  256    0.342649   0.000502886      0.00028522             256        0.300889         4.83448 │
+│ train_with_tune_facc3_00009   PENDING                  728    0.275564   0.0444689        1.7238e-06             256        0.780927         3.91367 │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+(raylet) /Users/navneet/git/research/swarm-guard/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020 [repeated 5x across cluster] (Ray deduplicates logs by default. Set RAY_DEDUP_LOGS=0 to disable log deduplication, or see https://docs.ray.io/en/master/ray-observability/user-guides/configure-logging.html#log-deduplication for more options.)
+(raylet)   warnings.warn( [repeated 5x across cluster]
+
+Trial train_with_tune_facc3_00001 started with configuration:
+╭──────────────────────────────────────────────────────╮
+│ Trial train_with_tune_facc3_00001 config             │
+├──────────────────────────────────────────────────────┤
+│ batch_size                                       128 │
+│ dropout                                       0.2954 │
+│ focal_alpha                                  0.30811 │
+│ focal_gamma                                   1.3937 │
+│ hidden_channels                                   64 │
+│ lr                                           0.00158 │
+│ weight_decay                                   1e-05 │
+╰──────────────────────────────────────────────────────╯
+
+Trial train_with_tune_facc3_00002 started with configuration:
+╭──────────────────────────────────────────────────────╮
+│ Trial train_with_tune_facc3_00002 config             │
+├──────────────────────────────────────────────────────┤
+│ batch_size                                       256 │
+│ dropout                                      0.31634 │
+│ focal_alpha                                     0.81 │
+│ focal_gamma                                  2.57348 │
+│ hidden_channels                                 1024 │
+│ lr                                           0.00013 │
+│ weight_decay                                   7e-05 │
+╰──────────────────────────────────────────────────────╯
+
+Trial train_with_tune_facc3_00000 started with configuration:
+╭──────────────────────────────────────────────────────╮
+│ Trial train_with_tune_facc3_00000 config             │
+├──────────────────────────────────────────────────────┤
+│ batch_size                                       128 │
+│ dropout                                      0.50725 │
+│ focal_alpha                                  0.99727 │
+│ focal_gamma                                  2.21179 │
+│ hidden_channels                                  256 │
+│ lr                                           0.00029 │
+│ weight_decay                                   7e-05 │
+╰──────────────────────────────────────────────────────╯
+
+Trial train_with_tune_facc3_00003 started with configuration:
+╭──────────────────────────────────────────────────────╮
+│ Trial train_with_tune_facc3_00003 config             │
+├──────────────────────────────────────────────────────┤
+│ batch_size                                       512 │
+│ dropout                                      0.50596 │
+│ focal_alpha                                  0.31096 │
+│ focal_gamma                                  2.71251 │
+│ hidden_channels                                  256 │
+│ lr                                           0.00017 │
+│ weight_decay                                 0.00093 │
+╰──────────────────────────────────────────────────────╯
+(raylet) /Users/navneet/git/research/swarm-guard/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020 [repeated 6x across cluster]
+(raylet)   warnings.warn( [repeated 6x across cluster]
+(raylet) [2025-04-13 22:55:19,245 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 22.9815 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+
+Trial status: 4 RUNNING | 6 PENDING
+Current time: 2025-04-13 22:55:20. Total running time: 30s
+Logical resource usage: 8.0/8 CPUs, 0/0 GPUs
+╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ Trial name                    status       hidden_channels     dropout            lr     weight_decay     batch_size     focal_alpha     focal_gamma │
+├──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ train_with_tune_facc3_00000   RUNNING                  256    0.507246   0.000288529      6.59307e-05            128        0.997271         2.21179 │
+│ train_with_tune_facc3_00001   RUNNING                   64    0.295402   0.00158042       7.64928e-06            128        0.308114         1.3937  │
+│ train_with_tune_facc3_00002   RUNNING                 1024    0.316341   0.000131028      7.37678e-05            256        0.810002         2.57348 │
+│ train_with_tune_facc3_00003   RUNNING                  256    0.505955   0.000174578      0.000926873            512        0.310959         2.71251 │
+│ train_with_tune_facc3_00004   PENDING                   64    0.435551   0.0189009        2.80363e-05            256        0.47889          3.21004 │
+│ train_with_tune_facc3_00005   PENDING                  256    0.197156   0.000308533      3.77954e-06            512        0.41227          3.38678 │
+│ train_with_tune_facc3_00006   PENDING                 1024    0.569909   0.0002058        1.43107e-05            512        0.113259         1.374   │
+│ train_with_tune_facc3_00007   PENDING                  512    0.421353   0.086047         7.78725e-05            256        0.216891         4.64121 │
+│ train_with_tune_facc3_00008   PENDING                  256    0.342649   0.000502886      0.00028522             256        0.300889         4.83448 │
+│ train_with_tune_facc3_00009   PENDING                  728    0.275564   0.0444689        1.7238e-06             256        0.780927         3.91367 │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+(raylet) [2025-04-13 22:55:29,302 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 20.1054 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+(raylet) [2025-04-13 22:55:39,744 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 16.7956 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+(raylet) [2025-04-13 22:55:49,829 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 14.6175 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Trial status: 4 RUNNING | 6 PENDING
+Current time: 2025-04-13 22:55:51. Total running time: 1min 0s
+Logical resource usage: 8.0/8 CPUs, 0/0 GPUs
+╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ Trial name                    status       hidden_channels     dropout            lr     weight_decay     batch_size     focal_alpha     focal_gamma │
+├──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ train_with_tune_facc3_00000   RUNNING                  256    0.507246   0.000288529      6.59307e-05            128        0.997271         2.21179 │
+│ train_with_tune_facc3_00001   RUNNING                   64    0.295402   0.00158042       7.64928e-06            128        0.308114         1.3937  │
+│ train_with_tune_facc3_00002   RUNNING                 1024    0.316341   0.000131028      7.37678e-05            256        0.810002         2.57348 │
+│ train_with_tune_facc3_00003   RUNNING                  256    0.505955   0.000174578      0.000926873            512        0.310959         2.71251 │
+│ train_with_tune_facc3_00004   PENDING                   64    0.435551   0.0189009        2.80363e-05            256        0.47889          3.21004 │
+│ train_with_tune_facc3_00005   PENDING                  256    0.197156   0.000308533      3.77954e-06            512        0.41227          3.38678 │
+│ train_with_tune_facc3_00006   PENDING                 1024    0.569909   0.0002058        1.43107e-05            512        0.113259         1.374   │
+│ train_with_tune_facc3_00007   PENDING                  512    0.421353   0.086047         7.78725e-05            256        0.216891         4.64121 │
+│ train_with_tune_facc3_00008   PENDING                  256    0.342649   0.000502886      0.00028522             256        0.300889         4.83448 │
+│ train_with_tune_facc3_00009   PENDING                  728    0.275564   0.0444689        1.7238e-06             256        0.780927         3.91367 │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+(raylet) [2025-04-13 22:55:59,879 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 12.4862 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Trial status: 4 RUNNING | 6 PENDING
+Current time: 2025-04-13 22:56:44. Total running time: 1min 53s
+Logical resource usage: 8.0/8 CPUs, 0/0 GPUs
+╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ Trial name                    status       hidden_channels     dropout            lr     weight_decay     batch_size     focal_alpha     focal_gamma │
+├──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ train_with_tune_facc3_00000   RUNNING                  256    0.507246   0.000288529      6.59307e-05            128        0.997271         2.21179 │
+│ train_with_tune_facc3_00001   RUNNING                   64    0.295402   0.00158042       7.64928e-06            128        0.308114         1.3937  │
+│ train_with_tune_facc3_00002   RUNNING                 1024    0.316341   0.000131028      7.37678e-05            256        0.810002         2.57348 │
+│ train_with_tune_facc3_00003   RUNNING                  256    0.505955   0.000174578      0.000926873            512        0.310959         2.71251 │
+│ train_with_tune_facc3_00004   PENDING                   64    0.435551   0.0189009        2.80363e-05            256        0.47889          3.21004 │
+│ train_with_tune_facc3_00005   PENDING                  256    0.197156   0.000308533      3.77954e-06            512        0.41227          3.38678 │
+│ train_with_tune_facc3_00006   PENDING                 1024    0.569909   0.0002058        1.43107e-05            512        0.113259         1.374   │
+│ train_with_tune_facc3_00007   PENDING                  512    0.421353   0.086047         7.78725e-05            256        0.216891         4.64121 │
+│ train_with_tune_facc3_00008   PENDING                  256    0.342649   0.000502886      0.00028522             256        0.300889         4.83448 │
+│ train_with_tune_facc3_00009   PENDING                  728    0.275564   0.0444689        1.7238e-06             256        0.780927         3.91367 │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯(raylet) [2025-04-13 22:56:44,773 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 11.8069 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+
+(raylet) [2025-04-13 22:56:56,173 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 7.76344 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+(raylet) [2025-04-13 22:57:06,269 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 4.0982 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+(raylet) [2025-04-13 22:57:16,350 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 3.09553 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Trial status: 4 RUNNING | 6 PENDING
+Current time: 2025-04-13 22:57:16. Total running time: 2min 26s
+Logical resource usage: 8.0/8 CPUs, 0/0 GPUs
+╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ Trial name                    status       hidden_channels     dropout            lr     weight_decay     batch_size     focal_alpha     focal_gamma │
+├──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ train_with_tune_facc3_00000   RUNNING                  256    0.507246   0.000288529      6.59307e-05            128        0.997271         2.21179 │
+│ train_with_tune_facc3_00001   RUNNING                   64    0.295402   0.00158042       7.64928e-06            128        0.308114         1.3937  │
+│ train_with_tune_facc3_00002   RUNNING                 1024    0.316341   0.000131028      7.37678e-05            256        0.810002         2.57348 │
+│ train_with_tune_facc3_00003   RUNNING                  256    0.505955   0.000174578      0.000926873            512        0.310959         2.71251 │
+│ train_with_tune_facc3_00004   PENDING                   64    0.435551   0.0189009        2.80363e-05            256        0.47889          3.21004 │
+│ train_with_tune_facc3_00005   PENDING                  256    0.197156   0.000308533      3.77954e-06            512        0.41227          3.38678 │
+│ train_with_tune_facc3_00006   PENDING                 1024    0.569909   0.0002058        1.43107e-05            512        0.113259         1.374   │
+│ train_with_tune_facc3_00007   PENDING                  512    0.421353   0.086047         7.78725e-05            256        0.216891         4.64121 │
+│ train_with_tune_facc3_00008   PENDING                  256    0.342649   0.000502886      0.00028522             256        0.300889         4.83448 │
+│ train_with_tune_facc3_00009   PENDING                  728    0.275564   0.0444689        1.7238e-06             256        0.780927         3.91367 │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯(raylet) [2025-04-13 22:57:33,413 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 2.59882 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+
+(raylet) [2025-04-13 23:00:51,666 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 1.69979 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+(train_with_tune pid=39320) /Users/navneet/git/research/swarm-guard/.venv/lib/python3.9/site-packages/torch_geometric/data/in_memory_dataset.py:300: UserWarning: It is not recommended to directly access the internal storage format `data` of an 'InMemoryDataset'. The data of the dataset is already cached, so any modifications to `data` will not be reflected when accessing its elements. Clearing the cache now by removing all elements in `dataset._data_list`. If you are absolutely certain what you are doing, access the internal storage via `InMemoryDataset._data` instead to suppress this warning. Alternatively, you can access stacked individual attributes of every graph via `dataset.{attr_name}`.
+(train_with_tune pid=39320)   warnings.warn(msg)
+(train_with_tune pid=39320) /Users/navneet/git/research/swarm-guard/.venv/lib/python3.9/site-packages/torch_geometric/data/in_memory_dataset.py:300: UserWarning: It is not recommended to directly access the internal storage format `data` of an 'InMemoryDataset'. If you are absolutely certain what you are doing, access the internal storage via `InMemoryDataset._data` instead to suppress this warning. Alternatively, you can access stacked individual attributes of every graph via `dataset.{attr_name}`.
+(train_with_tune pid=39320)   warnings.warn(msg)
+(train_with_tune pid=39319) in_channels: 9, num_classes: 2
+(raylet) Spilled 4449 MiB, 2 objects, write throughput 11 MiB/s. Set RAY_verbose_spill_logs=0 to disable this message.
+(raylet) [2025-04-13 23:01:21,885 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 20.7853 GB; capacity: 460.432 GB. Object creation will fail if spilling is required. [repeated 3x across cluster]
+(train_with_tune pid=39317) /Users/navneet/git/research/swarm-guard/.venv/lib/python3.9/site-packages/torch_geometric/data/in_memory_dataset.py:300: UserWarning: It is not recommended to directly access the internal storage format `data` of an 'InMemoryDataset'. The data of the dataset is already cached, so any modifications to `data` will not be reflected when accessing its elements. Clearing the cache now by removing all elements in `dataset._data_list`. If you are absolutely certain what you are doing, access the internal storage via `InMemoryDataset._data` instead to suppress this warning. Alternatively, you can access stacked individual attributes of every graph via `dataset.{attr_name}`. [repeated 3x across cluster]
+(train_with_tune pid=39317)   warnings.warn(msg) [repeated 6x across cluster]
+(train_with_tune pid=39317) /Users/navneet/git/research/swarm-guard/.venv/lib/python3.9/site-packages/torch_geometric/data/in_memory_dataset.py:300: UserWarning: It is not recommended to directly access the internal storage format `data` of an 'InMemoryDataset'. If you are absolutely certain what you are doing, access the internal storage via `InMemoryDataset._data` instead to suppress this warning. Alternatively, you can access stacked individual attributes of every graph via `dataset.{attr_name}`. [repeated 3x across cluster]
+
+Trial train_with_tune_facc3_00003 completed after 10 iterations at 2025-04-13 23:01:25. Total running time: 6min 34s
+╭──────────────────────────────────────────────────────╮
+│ Trial train_with_tune_facc3_00003 result             │
+├──────────────────────────────────────────────────────┤
+│ checkpoint_dir_name                                  │
+│ time_this_iter_s                             1.93355 │
+│ time_total_s                                 376.287 │
+│ training_iteration                                10 │
+│ val_roc_auc                                  0.57815 │
+╰──────────────────────────────────────────────────────╯
+(raylet) raylet(39449) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+(raylet) /Users/navneet/git/research/swarm-guard/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+(raylet)   warnings.warn(
+
+Trial train_with_tune_facc3_00001 completed after 15 iterations at 2025-04-13 23:01:28. Total running time: 6min 38s
+╭──────────────────────────────────────────────────────╮
+│ Trial train_with_tune_facc3_00001 result             │
+├──────────────────────────────────────────────────────┤
+│ checkpoint_dir_name                                  │
+│ time_this_iter_s                             1.14885 │
+│ time_total_s                                 393.482 │
+│ training_iteration                                15 │
+│ val_roc_auc                                  0.65564 │
+╰──────────────────────────────────────────────────────╯
+
+Trial status: 2 RUNNING | 2 TERMINATED | 6 PENDING
+Current time: 2025-04-13 23:01:55. Total running time: 7min 5s
+Logical resource usage: 8.0/8 CPUs, 0/0 GPUs
+╭────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ Trial name                    status         hidden_channels     dropout            lr     weight_decay     batch_size     focal_alpha     focal_gamma     iter     total time (s)     val_roc_auc │
+├────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ train_with_tune_facc3_00000   RUNNING                    256    0.507246   0.000288529      6.59307e-05            128        0.997271         2.21179       10            396.568        0.625092 │
+│ train_with_tune_facc3_00002   RUNNING                   1024    0.316341   0.000131028      7.37678e-05            256        0.810002         2.57348        3            394.646        0.612955 │
+│ train_with_tune_facc3_00001   TERMINATED                  64    0.295402   0.00158042       7.64928e-06            128        0.308114         1.3937        15            393.482        0.655644 │
+│ train_with_tune_facc3_00003   TERMINATED                 256    0.505955   0.000174578      0.000926873            512        0.310959         2.71251       10            376.287        0.578145 │
+│ train_with_tune_facc3_00004   PENDING                     64    0.435551   0.0189009        2.80363e-05            256        0.47889          3.21004                                             │
+│ train_with_tune_facc3_00005   PENDING                    256    0.197156   0.000308533      3.77954e-06            512        0.41227          3.38678                                             │
+│ train_with_tune_facc3_00006   PENDING                   1024    0.569909   0.0002058        1.43107e-05            512        0.113259         1.374                                               │
+│ train_with_tune_facc3_00007   PENDING                    512    0.421353   0.086047         7.78725e-05            256        0.216891         4.64121                                             │
+│ train_with_tune_facc3_00008   PENDING                    256    0.342649   0.000502886      0.00028522             256        0.300889         4.83448                                             │
+│ train_with_tune_facc3_00009   PENDING                    728    0.275564   0.0444689        1.7238e-06             256        0.780927         3.91367                                             │
+╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+Trial train_with_tune_facc3_00005 started with configuration:
+╭──────────────────────────────────────────────────────╮
+│ Trial train_with_tune_facc3_00005 config             │
+├──────────────────────────────────────────────────────┤
+│ batch_size                                       512 │
+│ dropout                                      0.19716 │
+│ focal_alpha                                  0.41227 │
+│ focal_gamma                                  3.38678 │
+│ hidden_channels                                  256 │
+│ lr                                           0.00031 │
+│ weight_decay                                       0 │
+╰──────────────────────────────────────────────────────╯
+
+Trial train_with_tune_facc3_00004 started with configuration:
+╭──────────────────────────────────────────────────────╮
+│ Trial train_with_tune_facc3_00004 config             │
+├──────────────────────────────────────────────────────┤
+│ batch_size                                       256 │
+│ dropout                                      0.43555 │
+│ focal_alpha                                  0.47889 │
+│ focal_gamma                                  3.21004 │
+│ hidden_channels                                   64 │
+│ lr                                            0.0189 │
+│ weight_decay                                   3e-05 │
+╰──────────────────────────────────────────────────────╯
+
+Trial train_with_tune_facc3_00000 completed after 15 iterations at 2025-04-13 23:02:01. Total running time: 7min 10s
+╭──────────────────────────────────────────────────────╮
+│ Trial train_with_tune_facc3_00000 result             │
+├──────────────────────────────────────────────────────┤
+│ checkpoint_dir_name                                  │
+│ time_this_iter_s                             1.18379 │
+│ time_total_s                                 425.987 │
+│ training_iteration                                15 │
+│ val_roc_auc                                  0.63643 │
+╰──────────────────────────────────────────────────────╯
+(raylet) raylet(39459) MallocStackLogging: can't turn off malloc stack logging because it was not enabled. [repeated 3x across cluster]
+(raylet) /Users/navneet/git/research/swarm-guard/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020 [repeated 4x across cluster]
+(raylet)   warnings.warn( [repeated 4x across cluster]
+(raylet) [2025-04-13 23:02:15,527 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 22.9249 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+(raylet) raylet(39460) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+(raylet) /Users/navneet/git/research/swarm-guard/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020 [repeated 3x across cluster]
+(raylet)   warnings.warn( [repeated 3x across cluster]
+
+Trial train_with_tune_facc3_00006 started with configuration:
+╭──────────────────────────────────────────────────────╮
+│ Trial train_with_tune_facc3_00006 config             │
+├──────────────────────────────────────────────────────┤
+│ batch_size                                       512 │
+│ dropout                                      0.56991 │
+│ focal_alpha                                  0.11326 │
+│ focal_gamma                                    1.374 │
+│ hidden_channels                                 1024 │
+│ lr                                           0.00021 │
+│ weight_decay                                   1e-05 │
+╰──────────────────────────────────────────────────────╯
+(raylet) [2025-04-13 23:02:25,581 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 19.6987 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+
+Trial status: 3 TERMINATED | 4 RUNNING | 3 PENDING
+Current time: 2025-04-13 23:02:26. Total running time: 7min 36s
+Logical resource usage: 8.0/8 CPUs, 0/0 GPUs
+╭────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ Trial name                    status         hidden_channels     dropout            lr     weight_decay     batch_size     focal_alpha     focal_gamma     iter     total time (s)     val_roc_auc │
+├────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ train_with_tune_facc3_00002   RUNNING                   1024    0.316341   0.000131028      7.37678e-05            256        0.810002         2.57348        8            446.421        0.619626 │
+│ train_with_tune_facc3_00004   RUNNING                     64    0.435551   0.0189009        2.80363e-05            256        0.47889          3.21004                                             │
+│ train_with_tune_facc3_00005   RUNNING                    256    0.197156   0.000308533      3.77954e-06            512        0.41227          3.38678                                             │
+│ train_with_tune_facc3_00006   RUNNING                   1024    0.569909   0.0002058        1.43107e-05            512        0.113259         1.374                                               │
+│ train_with_tune_facc3_00000   TERMINATED                 256    0.507246   0.000288529      6.59307e-05            128        0.997271         2.21179       15            425.987        0.636432 │
+│ train_with_tune_facc3_00001   TERMINATED                  64    0.295402   0.00158042       7.64928e-06            128        0.308114         1.3937        15            393.482        0.655644 │
+│ train_with_tune_facc3_00003   TERMINATED                 256    0.505955   0.000174578      0.000926873            512        0.310959         2.71251       10            376.287        0.578145 │
+│ train_with_tune_facc3_00007   PENDING                    512    0.421353   0.086047         7.78725e-05            256        0.216891         4.64121                                             │
+│ train_with_tune_facc3_00008   PENDING                    256    0.342649   0.000502886      0.00028522             256        0.300889         4.83448                                             │
+│ train_with_tune_facc3_00009   PENDING                    728    0.275564   0.0444689        1.7238e-06             256        0.780927         3.91367                                             │
+╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+(raylet) [2025-04-13 23:02:35,643 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 17.6804 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+
+Trial train_with_tune_facc3_00002 completed after 10 iterations at 2025-04-13 23:02:39. Total running time: 7min 48s
+╭──────────────────────────────────────────────────────╮
+│ Trial train_with_tune_facc3_00002 result             │
+├──────────────────────────────────────────────────────┤
+│ checkpoint_dir_name                                  │
+│ time_this_iter_s                             8.35444 │
+│ time_total_s                                 463.534 │
+│ training_iteration                                10 │
+│ val_roc_auc                                  0.62412 │
+╰──────────────────────────────────────────────────────╯
+(raylet) raylet(39475) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+(raylet) /Users/navneet/git/research/swarm-guard/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+(raylet)   warnings.warn(
+(raylet) [2025-04-13 23:02:48,580 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 16.6887 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+(raylet) raylet(39477) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+(raylet) /Users/navneet/git/research/swarm-guard/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+(raylet)   warnings.warn(
+
+Trial train_with_tune_facc3_00007 started with configuration:
+╭──────────────────────────────────────────────────────╮
+│ Trial train_with_tune_facc3_00007 config             │
+├──────────────────────────────────────────────────────┤
+│ batch_size                                       256 │
+│ dropout                                      0.42135 │
+│ focal_alpha                                  0.21689 │
+│ focal_gamma                                  4.64121 │
+│ hidden_channels                                  512 │
+│ lr                                           0.08605 │
+│ weight_decay                                   8e-05 │
+╰──────────────────────────────────────────────────────╯
+(train_with_tune pid=39451) /Users/navneet/git/research/swarm-guard/.venv/lib/python3.9/site-packages/torch_geometric/data/in_memory_dataset.py:300: UserWarning: It is not recommended to directly access the internal storage format `data` of an 'InMemoryDataset'. The data of the dataset is already cached, so any modifications to `data` will not be reflected when accessing its elements. Clearing the cache now by removing all elements in `dataset._data_list`. If you are absolutely certain what you are doing, access the internal storage via `InMemoryDataset._data` instead to suppress this warning. Alternatively, you can access stacked individual attributes of every graph via `dataset.{attr_name}`.
+(train_with_tune pid=39451)   warnings.warn(msg)
+(train_with_tune pid=39451) /Users/navneet/git/research/swarm-guard/.venv/lib/python3.9/site-packages/torch_geometric/data/in_memory_dataset.py:300: UserWarning: It is not recommended to directly access the internal storage format `data` of an 'InMemoryDataset'. If you are absolutely certain what you are doing, access the internal storage via `InMemoryDataset._data` instead to suppress this warning. Alternatively, you can access stacked individual attributes of every graph via `dataset.{attr_name}`.
+(train_with_tune pid=39451)   warnings.warn(msg)
+(raylet) /Users/navneet/git/research/swarm-guard/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+(raylet)   warnings.warn(
+(train_with_tune pid=39452) in_channels: 9, num_classes: 2 [repeated 4x across cluster]
+
+Trial status: 4 TERMINATED | 4 RUNNING | 2 PENDING
+Current time: 2025-04-13 23:02:57. Total running time: 8min 6s
+Logical resource usage: 8.0/8 CPUs, 0/0 GPUs
+╭────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ Trial name                    status         hidden_channels     dropout            lr     weight_decay     batch_size     focal_alpha     focal_gamma     iter     total time (s)     val_roc_auc │
+├────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ train_with_tune_facc3_00004   RUNNING                     64    0.435551   0.0189009        2.80363e-05            256        0.47889          3.21004                                             │
+│ train_with_tune_facc3_00005   RUNNING                    256    0.197156   0.000308533      3.77954e-06            512        0.41227          3.38678                                             │
+│ train_with_tune_facc3_00006   RUNNING                   1024    0.569909   0.0002058        1.43107e-05            512        0.113259         1.374                                               │
+│ train_with_tune_facc3_00007   RUNNING                    512    0.421353   0.086047         7.78725e-05            256        0.216891         4.64121                                             │
+│ train_with_tune_facc3_00000   TERMINATED                 256    0.507246   0.000288529      6.59307e-05            128        0.997271         2.21179       15            425.987        0.636432 │
+│ train_with_tune_facc3_00001   TERMINATED                  64    0.295402   0.00158042       7.64928e-06            128        0.308114         1.3937        15            393.482        0.655644 │
+│ train_with_tune_facc3_00002   TERMINATED                1024    0.316341   0.000131028      7.37678e-05            256        0.810002         2.57348       10            463.534        0.624117 │
+│ train_with_tune_facc3_00003   TERMINATED                 256    0.505955   0.000174578      0.000926873            512        0.310959         2.71251       10            376.287        0.578145 │
+│ train_with_tune_facc3_00008   PENDING                    256    0.342649   0.000502886      0.00028522             256        0.300889         4.83448                                             │
+│ train_with_tune_facc3_00009   PENDING                    728    0.275564   0.0444689        1.7238e-06             256        0.780927         3.91367                                             │
+╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+(raylet) [2025-04-13 23:02:58,652 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 17.6924 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+
+Trial train_with_tune_facc3_00005 completed after 5 iterations at 2025-04-13 23:03:01. Total running time: 8min 10s
+╭──────────────────────────────────────────────────────╮
+│ Trial train_with_tune_facc3_00005 result             │
+├──────────────────────────────────────────────────────┤
+│ checkpoint_dir_name                                  │
+│ time_this_iter_s                             0.73178 │
+│ time_total_s                                 62.9046 │
+│ training_iteration                                 5 │
+│ val_roc_auc                                  0.55539 │
+╰──────────────────────────────────────────────────────╯
+
+Trial train_with_tune_facc3_00004 completed after 5 iterations at 2025-04-13 23:03:02. Total running time: 8min 11s
+╭──────────────────────────────────────────────────────╮
+│ Trial train_with_tune_facc3_00004 result             │
+├──────────────────────────────────────────────────────┤
+│ checkpoint_dir_name                                  │
+│ time_this_iter_s                             0.19931 │
+│ time_total_s                                 63.3094 │
+│ training_iteration                                 5 │
+│ val_roc_auc                                  0.52419 │
+╰──────────────────────────────────────────────────────╯
+(raylet) raylet(39487) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+(train_with_tune pid=39452) /Users/navneet/git/research/swarm-guard/.venv/lib/python3.9/site-packages/torch_geometric/data/in_memory_dataset.py:300: UserWarning: It is not recommended to directly access the internal storage format `data` of an 'InMemoryDataset'. The data of the dataset is already cached, so any modifications to `data` will not be reflected when accessing its elements. Clearing the cache now by removing all elements in `dataset._data_list`. If you are absolutely certain what you are doing, access the internal storage via `InMemoryDataset._data` instead to suppress this warning. Alternatively, you can access stacked individual attributes of every graph via `dataset.{attr_name}`.
+(train_with_tune pid=39452)   warnings.warn(msg) [repeated 2x across cluster]
+(train_with_tune pid=39452) /Users/navneet/git/research/swarm-guard/.venv/lib/python3.9/site-packages/torch_geometric/data/in_memory_dataset.py:300: UserWarning: It is not recommended to directly access the internal storage format `data` of an 'InMemoryDataset'. If you are absolutely certain what you are doing, access the internal storage via `InMemoryDataset._data` instead to suppress this warning. Alternatively, you can access stacked individual attributes of every graph via `dataset.{attr_name}`.
+(raylet) /Users/navneet/git/research/swarm-guard/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+(raylet)   warnings.warn(
+
+Trial train_with_tune_facc3_00008 started with configuration:
+╭──────────────────────────────────────────────────────╮
+│ Trial train_with_tune_facc3_00008 config             │
+├──────────────────────────────────────────────────────┤
+│ batch_size                                       256 │
+│ dropout                                      0.34265 │
+│ focal_alpha                                  0.30089 │
+│ focal_gamma                                  4.83448 │
+│ hidden_channels                                  256 │
+│ lr                                            0.0005 │
+│ weight_decay                                 0.00029 │
+╰──────────────────────────────────────────────────────╯
+
+Trial train_with_tune_facc3_00009 started with configuration:
+╭──────────────────────────────────────────────────────╮
+│ Trial train_with_tune_facc3_00009 config             │
+├──────────────────────────────────────────────────────┤
+│ batch_size                                       256 │
+│ dropout                                      0.27556 │
+│ focal_alpha                                  0.78093 │
+│ focal_gamma                                  3.91367 │
+│ hidden_channels                                  728 │
+│ lr                                           0.04447 │
+│ weight_decay                                       0 │
+╰──────────────────────────────────────────────────────╯
+(raylet) [2025-04-13 23:03:11,976 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 22.6886 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+(raylet) raylet(39490) MallocStackLogging: can't turn off malloc stack logging because it was not enabled. [repeated 3x across cluster]
+(raylet) /Users/navneet/git/research/swarm-guard/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020 [repeated 5x across cluster]
+(raylet)   warnings.warn( [repeated 5x across cluster]
+(raylet) [2025-04-13 23:03:22,059 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 19.6914 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+
+Trial status: 6 TERMINATED | 4 RUNNING
+Current time: 2025-04-13 23:03:27. Total running time: 8min 36s
+Logical resource usage: 8.0/8 CPUs, 0/0 GPUs
+╭────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ Trial name                    status         hidden_channels     dropout            lr     weight_decay     batch_size     focal_alpha     focal_gamma     iter     total time (s)     val_roc_auc │
+├────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ train_with_tune_facc3_00006   RUNNING                   1024    0.569909   0.0002058        1.43107e-05            512        0.113259         1.374                                               │
+│ train_with_tune_facc3_00007   RUNNING                    512    0.421353   0.086047         7.78725e-05            256        0.216891         4.64121                                             │
+│ train_with_tune_facc3_00008   RUNNING                    256    0.342649   0.000502886      0.00028522             256        0.300889         4.83448                                             │
+│ train_with_tune_facc3_00009   RUNNING                    728    0.275564   0.0444689        1.7238e-06             256        0.780927         3.91367                                             │
+│ train_with_tune_facc3_00000   TERMINATED                 256    0.507246   0.000288529      6.59307e-05            128        0.997271         2.21179       15           425.987         0.636432 │
+│ train_with_tune_facc3_00001   TERMINATED                  64    0.295402   0.00158042       7.64928e-06            128        0.308114         1.3937        15           393.482         0.655644 │
+│ train_with_tune_facc3_00002   TERMINATED                1024    0.316341   0.000131028      7.37678e-05            256        0.810002         2.57348       10           463.534         0.624117 │
+│ train_with_tune_facc3_00003   TERMINATED                 256    0.505955   0.000174578      0.000926873            512        0.310959         2.71251       10           376.287         0.578145 │
+│ train_with_tune_facc3_00004   TERMINATED                  64    0.435551   0.0189009        2.80363e-05            256        0.47889          3.21004        5            63.3094        0.524192 │
+│ train_with_tune_facc3_00005   TERMINATED                 256    0.197156   0.000308533      3.77954e-06            512        0.41227          3.38678        5            62.9046        0.555386 │
+╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+(raylet) [2025-04-13 23:03:32,129 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 17.6908 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Trial status: 6 TERMINATED | 4 RUNNING
+Current time: 2025-04-13 23:19:09. Total running time: 24min 18s
+Logical resource usage: 8.0/8 CPUs, 0/0 GPUs
+╭────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ Trial name                    status         hidden_channels     dropout            lr     weight_decay     batch_size     focal_alpha     focal_gamma     iter     total time (s)     val_roc_auc │
+├────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ train_with_tune_facc3_00006   RUNNING                   1024    0.569909   0.0002058        1.43107e-05            512        0.113259         1.374                                               │
+│ train_with_tune_facc3_00007   RUNNING                    512    0.421353   0.086047         7.78725e-05            256        0.216891         4.64121                                             │
+│ train_with_tune_facc3_00008   RUNNING                    256    0.342649   0.000502886      0.00028522             256        0.300889         4.83448                                             │
+│ train_with_tune_facc3_00009   RUNNING                    728    0.275564   0.0444689        1.7238e-06             256        0.780927         3.91367                                             │
+│ train_with_tune_facc3_00000   TERMINATED                 256    0.507246   0.000288529      6.59307e-05            128        0.997271         2.21179       15           425.987         0.636432 │
+│ train_with_tune_facc3_00001   TERMINATED                  64    0.295402   0.00158042       7.64928e-06            128        0.308114         1.3937        15           393.482         0.655644 │
+│ train_with_tune_facc3_00002   TERMINATED                1024    0.316341   0.000131028      7.37678e-05            256        0.810002         2.57348       10           463.534         0.624117 │
+│ train_with_tune_facc3_00003   TERMINATED                 256    0.505955   0.000174578      0.000926873            512        0.310959         2.71251       10           376.287         0.578145 │
+│ train_with_tune_facc3_00004   TERMINATED                  64    0.435551   0.0189009        2.80363e-05            256        0.47889          3.21004        5            63.3094        0.524192 │
+│ train_with_tune_facc3_00005   TERMINATED                 256    0.197156   0.000308533      3.77954e-06            512        0.41227          3.38678        5            62.9046        0.555386 │
+╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯(raylet) [2025-04-13 23:19:09,521 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 16.6888 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+
+(train_with_tune pid=39460) /Users/navneet/git/research/swarm-guard/.venv/lib/python3.9/site-packages/torch_geometric/data/in_memory_dataset.py:300: UserWarning: It is not recommended to directly access the internal storage format `data` of an 'InMemoryDataset'. The data of the dataset is already cached, so any modifications to `data` will not be reflected when accessing its elements. Clearing the cache now by removing all elements in `dataset._data_list`. If you are absolutely certain what you are doing, access the internal storage via `InMemoryDataset._data` instead to suppress this warning. Alternatively, you can access stacked individual attributes of every graph via `dataset.{attr_name}`.
+(train_with_tune pid=39460)   warnings.warn(msg)
+(train_with_tune pid=39460) /Users/navneet/git/research/swarm-guard/.venv/lib/python3.9/site-packages/torch_geometric/data/in_memory_dataset.py:300: UserWarning: It is not recommended to directly access the internal storage format `data` of an 'InMemoryDataset'. If you are absolutely certain what you are doing, access the internal storage via `InMemoryDataset._data` instead to suppress this warning. Alternatively, you can access stacked individual attributes of every graph via `dataset.{attr_name}`.
+(train_with_tune pid=39460)   warnings.warn(msg)
+(train_with_tune pid=39460) in_channels: 9, num_classes: 2 [repeated 2x across cluster]
+(raylet) [2025-04-13 23:19:19,594 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 14.6967 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+(raylet) [2025-04-13 23:19:29,652 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 13.1531 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+(raylet) [2025-04-13 23:19:39,699 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 12.673 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Trial status: 6 TERMINATED | 4 RUNNING
+Current time: 2025-04-13 23:19:40. Total running time: 24min 49s
+Logical resource usage: 8.0/8 CPUs, 0/0 GPUs
+╭────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ Trial name                    status         hidden_channels     dropout            lr     weight_decay     batch_size     focal_alpha     focal_gamma     iter     total time (s)     val_roc_auc │
+├────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ train_with_tune_facc3_00006   RUNNING                   1024    0.569909   0.0002058        1.43107e-05            512        0.113259         1.374          5          1035.59          0.616222 │
+│ train_with_tune_facc3_00007   RUNNING                    512    0.421353   0.086047         7.78725e-05            256        0.216891         4.64121                                             │
+│ train_with_tune_facc3_00008   RUNNING                    256    0.342649   0.000502886      0.00028522             256        0.300889         4.83448                                             │
+│ train_with_tune_facc3_00009   RUNNING                    728    0.275564   0.0444689        1.7238e-06             256        0.780927         3.91367                                             │
+│ train_with_tune_facc3_00000   TERMINATED                 256    0.507246   0.000288529      6.59307e-05            128        0.997271         2.21179       15           425.987         0.636432 │
+│ train_with_tune_facc3_00001   TERMINATED                  64    0.295402   0.00158042       7.64928e-06            128        0.308114         1.3937        15           393.482         0.655644 │
+│ train_with_tune_facc3_00002   TERMINATED                1024    0.316341   0.000131028      7.37678e-05            256        0.810002         2.57348       10           463.534         0.624117 │
+│ train_with_tune_facc3_00003   TERMINATED                 256    0.505955   0.000174578      0.000926873            512        0.310959         2.71251       10           376.287         0.578145 │
+│ train_with_tune_facc3_00004   TERMINATED                  64    0.435551   0.0189009        2.80363e-05            256        0.47889          3.21004        5            63.3094        0.524192 │
+│ train_with_tune_facc3_00005   TERMINATED                 256    0.197156   0.000308533      3.77954e-06            512        0.41227          3.38678        5            62.9046        0.555386 │
+╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+(train_with_tune pid=39477) /Users/navneet/git/research/swarm-guard/.venv/lib/python3.9/site-packages/torch_geometric/data/in_memory_dataset.py:300: UserWarning: It is not recommended to directly access the internal storage format `data` of an 'InMemoryDataset'. The data of the dataset is already cached, so any modifications to `data` will not be reflected when accessing its elements. Clearing the cache now by removing all elements in `dataset._data_list`. If you are absolutely certain what you are doing, access the internal storage via `InMemoryDataset._data` instead to suppress this warning. Alternatively, you can access stacked individual attributes of every graph via `dataset.{attr_name}`.
+(train_with_tune pid=39477)   warnings.warn(msg)
+(train_with_tune pid=39477) /Users/navneet/git/research/swarm-guard/.venv/lib/python3.9/site-packages/torch_geometric/data/in_memory_dataset.py:300: UserWarning: It is not recommended to directly access the internal storage format `data` of an 'InMemoryDataset'. If you are absolutely certain what you are doing, access the internal storage via `InMemoryDataset._data` instead to suppress this warning. Alternatively, you can access stacked individual attributes of every graph via `dataset.{attr_name}`.
+(train_with_tune pid=39477)   warnings.warn(msg)
+(train_with_tune pid=39477) in_channels: 9, num_classes: 2
+(raylet) [2025-04-13 23:19:49,759 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 12.7456 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+(raylet) [2025-04-13 23:19:59,827 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 11.6185 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+2025-04-13 23:20:01,082 WARNING util.py:201 -- The `callbacks.on_trial_result` operation took 0.685 s, which may be a performance bottleneck.
+2025-04-13 23:20:01,082 WARNING util.py:201 -- The `process_trial_result` operation took 0.686 s, which may be a performance bottleneck.
+2025-04-13 23:20:01,083 WARNING util.py:201 -- Processing trial results took 0.686 s, which may be a performance bottleneck. Please consider reporting results less frequently to Ray Tune.
+2025-04-13 23:20:01,083 WARNING util.py:201 -- The `process_trial_result` operation took 0.686 s, which may be a performance bottleneck.
+2025-04-13 23:20:01,666 WARNING util.py:201 -- The `callbacks.on_trial_result` operation took 0.583 s, which may be a performance bottleneck.
+2025-04-13 23:20:01,667 WARNING util.py:201 -- The `process_trial_result` operation took 0.584 s, which may be a performance bottleneck.
+2025-04-13 23:20:01,667 WARNING util.py:201 -- Processing trial results took 0.584 s, which may be a performance bottleneck. Please consider reporting results less frequently to Ray Tune.
+2025-04-13 23:20:01,667 WARNING util.py:201 -- The `process_trial_result` operation took 0.584 s, which may be a performance bottleneck.
+
+Trial train_with_tune_facc3_00007 completed after 5 iterations at 2025-04-13 23:20:07. Total running time: 25min 16s
+╭──────────────────────────────────────────────────────╮
+│ Trial train_with_tune_facc3_00007 result             │
+├──────────────────────────────────────────────────────┤
+│ checkpoint_dir_name                                  │
+│ time_this_iter_s                             2.12901 │
+│ time_total_s                                 1029.98 │
+│ training_iteration                                 5 │
+│ val_roc_auc                                  0.55369 │
+╰──────────────────────────────────────────────────────╯
+(raylet) [2025-04-13 23:20:09,886 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 11.6835 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+
+Trial status: 7 TERMINATED | 3 RUNNING
+Current time: 2025-04-13 23:20:13. Total running time: 25min 22s
+Logical resource usage: 6.0/8 CPUs, 0/0 GPUs
+╭────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ Trial name             (train_with_tune pid=39489) /Users/navneet/git/research/swarm-guard/.venv/lib/python3.9/site-packages/torch_geometric/data/in_memory_dataset.py:300: UserWarning: It is not recommended to directly access the internal storage format `data` of an 'InMemoryDataset'. The data of the dataset is already cached, so any modifications to `data` will not be reflected when accessing its elements. Clearing the cache now by removing all elements in `dataset._data_list`. If you are absolutely certain what you are doing, access the internal storage via `InMemoryDataset._data` instead to suppress this warning. Alternatively, you can access stacked individual attributes of every graph via `dataset.{attr_name}`.
+       status         hidden_channels     dropout            lr     weight_decay     batch_size     focal_alpha     focal_gamma     iter     total time (s)     val_roc_auc │
+├────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ train_with_tune_facc3_00006   RUNNING                   1024    0.569909   0.0002058        1.43107e-05            512        0.113259         1.374         14          1066.14          0.640624 │
+│ train_with_tune_facc3_00008   RUNNING                    256    0.342649   0.000502886      0.00028522             256        0.300889         4.83448                                             │
+│ train_with_tune_facc3_00009   RUNNING                    728    0.275564   0.0444689        1.7238e-06             256        0.780927         3.91367                                             │
+│ train_with_tune_facc3_00000   TERMINATED                 256    0.507246   0.000288529      6.59307e-05            128        0.997271         2.21179       15           425.987         0.636432 │
+│ train_with_tune_facc3_00001   TERMINATED                  64    0.295402   0.00158042       7.64928e-06            128        0.308114         1.3937        15           393.482         0.655644 │
+│ train_with_tune_facc3_00002   TERMINATED                1024    0.316341   0.000131028      7.37678e-05            256        0.810002         2.57348       10           463.534         0.624117 │
+│ train_with_tune_facc3_00003   TERMINATED                 256    0.505955   0.000174578      0.000926873            512        0.310959         2.71251       10           376.287         0.578145 │
+│ train_with_tune_facc3_00004   TERMINATED                  64    0.435551   0.0189009        2.80363e-05            256        0.47889          3.21004        5            63.3094        0.524192 │
+│ train_with_tune_facc3_00005   TERMINATED                 256    0.197156   0.000308533      3.77954e-06            512        0.41227          3.38678        5            62.9046        0.555386 │
+│ train_with_tune_facc3_00007   TERMINATED                 512    0.421353   0.086047         7.78725e-05            256        0.216891         4.64121        5          1029.98          0.553693 │
+╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯(train_with_tune pid=39489)   warnings.warn(msg)
+
+(train_with_tune pid=39489) /Users/navneet/git/research/swarm-guard/.venv/lib/python3.9/site-packages/torch_geometric/data/in_memory_dataset.py:300: UserWarning: It is not recommended to directly access the internal storage format `data` of an 'InMemoryDataset'. If you are absolutely certain what you are doing, access the internal storage via `InMemoryDataset._data` instead to suppress this warning. Alternatively, you can access stacked individual attributes of every graph via `dataset.{attr_name}`.
+(train_with_tune pid=39489)   warnings.warn(msg)
+(train_with_tune pid=39490) in_channels: 9, num_classes: 2
+(raylet) [2025-04-13 23:20:19,947 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 13.6804 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+
+Trial train_with_tune_facc3_00006 completed after 15 iterations at 2025-04-13 23:20:20. Total running time: 25min 29s
+╭──────────────────────────────────────────────────────╮
+│ Trial train_with_tune_facc3_00006 result             │
+├──────────────────────────────────────────────────────┤
+│ checkpoint_dir_name                                  │
+│ time_this_iter_s                             2.65355 │
+│ time_total_s                                 1068.79 │
+│ training_iteration                                15 │
+│ val_roc_auc                                   0.6465 │
+╰──────────────────────────────────────────────────────╯
+
+Trial train_with_tune_facc3_00008 completed after 10 iterations at 2025-04-13 23:20:35. Total running time: 25min 45s
+╭──────────────────────────────────────────────────────╮
+│ Trial train_with_tune_facc3_00008 result             │
+├──────────────────────────────────────────────────────┤
+│ checkpoint_dir_name                                  │
+│ time_this_iter_s                             1.43957 │
+│ time_total_s                                 1045.15 │
+│ training_iteration                                10 │
+│ val_roc_auc                                   0.6207 │
+╰──────────────────────────────────────────────────────╯
+
+Trial status: 9 TERMINATED | 1 RUNNING
+Current time: 2025-04-13 23:20:50. Total running time: 25min 59s
+Logical resource usage: 2.0/8 CPUs, 0/0 GPUs
+╭────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ Trial name                    status         hidden_channels     dropout            lr     weight_decay     batch_size     focal_alpha     focal_gamma     iter     total time (s)     val_roc_auc │
+├────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ train_with_tune_facc3_00009   RUNNING                    728    0.275564   0.0444689        1.7238e-06             256        0.780927         3.91367       11          1059.1           0.398701 │
+│ train_with_tune_facc3_00000   TERMINATED                 256    0.507246   0.000288529      6.59307e-05            128        0.997271         2.21179       15           425.987         0.636432 │
+│ train_with_tune_facc3_00001   TERMINATED                  64    0.295402   0.00158042       7.64928e-06            128        0.308114         1.3937        15           393.482         0.655644 │
+│ train_with_tune_facc3_00002   TERMINATED                1024    0.316341   0.000131028      7.37678e-05            256        0.810002         2.57348       10           463.534         0.624117 │
+│ train_with_tune_facc3_00003   TERMINATED                 256    0.505955   0.000174578      0.000926873            512        0.310959         2.71251       10           376.287         0.578145 │
+│ train_with_tune_facc3_00004   TERMINATED                  64    0.435551   0.0189009        2.80363e-05            256        0.47889          3.21004        5            63.3094        0.524192 │
+│ train_with_tune_facc3_00005   TERMINATED                 256    0.197156   0.000308533      3.77954e-06            512        0.41227          3.38678        5            62.9046        0.555386 │
+│ train_with_tune_facc3_00006   TERMINATED                1024    0.569909   0.0002058        1.43107e-05            512        0.113259         1.374         15          1068.79          0.6465   │
+│ train_with_tune_facc3_00007   TERMINATED                 512    0.421353   0.086047         7.78725e-05            256        0.216891         4.64121        5          1029.98          0.553693 │
+│ train_with_tune_facc3_00008   TERMINATED                 256    0.342649   0.000502886      0.00028522             256        0.300889         4.83448       10          1045.15          0.620699 │
+╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+Trial train_with_tune_facc3_00009 completed after 15 iterations at 2025-04-13 23:20:56. Total running time: 26min 5s
+╭──────────────────────────────────────────────────────╮
+│ Trial train_with_tune_facc3_00009 result             │
+├──────────────────────────────────────────────────────┤
+│ checkpoint_dir_name                                  │
+│ time_this_iter_s                              1.9326 │
+│ time_total_s                                 1066.57 │
+│ training_iteration                                15 │
+│ val_roc_auc                                  0.52971 │
+╰──────────────────────────────────────────────────────╯
+2025-04-13 23:20:56,649 INFO tune.py:1009 -- Wrote the latest version of all result files and experiment state to '/Users/navneet/git/research/swarm-guard/ray_results/train_with_tune_2025-04-13_22-54-50' in 0.0050s.
+
+Trial status: 10 TERMINATED
+Current time: 2025-04-13 23:20:56. Total running time: 26min 5s
+Logical resource usage: 2.0/8 CPUs, 0/0 GPUs
+╭────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ Trial name                    status         hidden_channels     dropout            lr     weight_decay     batch_size     focal_alpha     focal_gamma     iter     total time (s)     val_roc_auc │
+├────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ train_with_tune_facc3_00000   TERMINATED                 256    0.507246   0.000288529      6.59307e-05            128        0.997271         2.21179       15           425.987         0.636432 │
+│ train_with_tune_facc3_00001   TERMINATED                  64    0.295402   0.00158042       7.64928e-06            128        0.308114         1.3937        15           393.482         0.655644 │
+│ train_with_tune_facc3_00002   TERMINATED                1024    0.316341   0.000131028      7.37678e-05            256        0.810002         2.57348       10           463.534         0.624117 │
+│ train_with_tune_facc3_00003   TERMINATED                 256    0.505955   0.000174578      0.000926873            512        0.310959         2.71251       10           376.287         0.578145 │
+│ train_with_tune_facc3_00004   TERMINATED                  64    0.435551   0.0189009        2.80363e-05            256        0.47889          3.21004        5            63.3094        0.524192 │
+│ train_with_tune_facc3_00005   TERMINATED                 256    0.197156   0.000308533      3.77954e-06            512        0.41227          3.38678        5            62.9046        0.555386 │
+│ train_with_tune_facc3_00006   TERMINATED                1024    0.569909   0.0002058        1.43107e-05            512        0.113259         1.374         15          1068.79          0.6465   │
+│ train_with_tune_facc3_00007   TERMINATED                 512    0.421353   0.086047         7.78725e-05            256        0.216891         4.64121        5          1029.98          0.553693 │
+│ train_with_tune_facc3_00008   TERMINATED                 256    0.342649   0.000502886      0.00028522             256        0.300889         4.83448       10          1045.15          0.620699 │
+│ train_with_tune_facc3_00009   TERMINATED                 728    0.275564   0.0444689        1.7238e-06             256        0.780927         3.91367       15          1066.57          0.529708 │
+╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+Best config found: {'hidden_channels': 64, 'dropout': 0.2954021195697293, 'lr': 0.0015804240267104938, 'weight_decay': 7.64927591337679e-06, 'batch_size': 128, 'focal_alpha': 0.3081135417724518, 'focal_gamma': 1.3936990483465523}
+/Users/navneet/git/research/swarm-guard/.venv/lib/python3.9/site-packages/torch_geometric/data/in_memory_dataset.py:300: UserWarning: It is not recommended to directly access the internal storage format `data` of an 'InMemoryDataset'. The data of the dataset is already cached, so any modifications to `data` will not be reflected when accessing its elements. Clearing the cache now by removing all elements in `dataset._data_list`. If you are absolutely certain what you are doing, access the internal storage via `InMemoryDataset._data` instead to suppress this warning. Alternatively, you can access stacked individual attributes of every graph via `dataset.{attr_name}`.
+  warnings.warn(msg)
+/Users/navneet/git/research/swarm-guard/.venv/lib/python3.9/site-packages/torch_geometric/data/in_memory_dataset.py:300: UserWarning: It is not recommended to directly access the internal storage format `data` of an 'InMemoryDataset'. If you are absolutely certain what you are doing, access the internal storage via `InMemoryDataset._data` instead to suppress this warning. Alternatively, you can access stacked individual attributes of every graph via `dataset.{attr_name}`.
+  warnings.warn(msg)
+Epoch 1, Train Loss: 0.0822, Train Acc: 0.5286, Val ROC AUC: 0.6168
+Validation metric improved. Saving model to best_model.pth
+Epoch 2, Train Loss: 0.0809, Train Acc: 0.5679, Val ROC AUC: 0.5997
+EarlyStopping counter: 1 out of 15
+Epoch 3, Train Loss: 0.0813, Train Acc: 0.5208, Val ROC AUC: 0.6238
+Validation metric improved. Saving model to best_model.pth
+Epoch 4, Train Loss: 0.0818, Train Acc: 0.5554, Val ROC AUC: 0.6047
+EarlyStopping counter: 1 out of 15
+Epoch 5, Train Loss: 0.0810, Train Acc: 0.5708, Val ROC AUC: 0.6280
+Validation metric improved. Saving model to best_model.pth
+Epoch 6, Train Loss: 0.0800, Train Acc: 0.5685, Val ROC AUC: 0.6191
+EarlyStopping counter: 1 out of 15
+Epoch 7, Train Loss: 0.0801, Train Acc: 0.5756, Val ROC AUC: 0.6179
+EarlyStopping counter: 2 out of 15
+Epoch 8, Train Loss: 0.0799, Train Acc: 0.5935, Val ROC AUC: 0.6138
+EarlyStopping counter: 3 out of 15
+Epoch 9, Train Loss: 0.0797, Train Acc: 0.5851, Val ROC AUC: 0.6208
+EarlyStopping counter: 4 out of 15
+Epoch 10, Train Loss: 0.0808, Train Acc: 0.5339, Val ROC AUC: 0.6281
+Validation metric improved. Saving model to best_model.pth
+Epoch 11, Train Loss: 0.0809, Train Acc: 0.5845, Val ROC AUC: 0.6323
+Validation metric improved. Saving model to best_model.pth
+Epoch 12, Train Loss: 0.0806, Train Acc: 0.5833, Val ROC AUC: 0.6276
+EarlyStopping counter: 1 out of 15
+Epoch 13, Train Loss: 0.0808, Train Acc: 0.5970, Val ROC AUC: 0.6221
+EarlyStopping counter: 2 out of 15
+Epoch 14, Train Loss: 0.0804, Train Acc: 0.5893, Val ROC AUC: 0.6348
+Validation metric improved. Saving model to best_model.pth
+Epoch 15, Train Loss: 0.0799, Train Acc: 0.5845, Val ROC AUC: 0.6251
+EarlyStopping counter: 1 out of 15
+Epoch 16, Train Loss: 0.0809, Train Acc: 0.5827, Val ROC AUC: 0.6355
+Validation metric improved. Saving model to best_model.pth
+Epoch 17, Train Loss: 0.0793, Train Acc: 0.5869, Val ROC AUC: 0.6361
+Validation metric improved. Saving model to best_model.pth
+Epoch 18, Train Loss: 0.0788, Train Acc: 0.6036, Val ROC AUC: 0.6378
+Validation metric improved. Saving model to best_model.pth
+Epoch 19, Train Loss: 0.0791, Train Acc: 0.6030, Val ROC AUC: 0.6364
+EarlyStopping counter: 1 out of 15
+Epoch 20, Train Loss: 0.0796, Train Acc: 0.5863, Val ROC AUC: 0.6390
+Validation metric improved. Saving model to best_model.pth
+Epoch 21, Train Loss: 0.0797, Train Acc: 0.5708, Val ROC AUC: 0.6484
+Validation metric improved. Saving model to best_model.pth
+Epoch 22, Train Loss: 0.0790, Train Acc: 0.6006, Val ROC AUC: 0.6490
+Validation metric improved. Saving model to best_model.pth
+Epoch 23, Train Loss: 0.0801, Train Acc: 0.5881, Val ROC AUC: 0.6475
+EarlyStopping counter: 1 out of 15
+Epoch 24, Train Loss: 0.0796, Train Acc: 0.5982, Val ROC AUC: 0.6508
+Validation metric improved. Saving model to best_model.pth
+Epoch 25, Train Loss: 0.0788, Train Acc: 0.6054, Val ROC AUC: 0.6605
+Validation metric improved. Saving model to best_model.pth
+Epoch 26, Train Loss: 0.0793, Train Acc: 0.5833, Val ROC AUC: 0.6451
+EarlyStopping counter: 1 out of 15
+Epoch 27, Train Loss: 0.0790, Train Acc: 0.6095, Val ROC AUC: 0.6536
+EarlyStopping counter: 2 out of 15
+Epoch 28, Train Loss: 0.0796, Train Acc: 0.6131, Val ROC AUC: 0.6506
+EarlyStopping counter: 3 out of 15
+Epoch 29, Train Loss: 0.0794, Train Acc: 0.6012, Val ROC AUC: 0.6542
+EarlyStopping counter: 4 out of 15
+Epoch 30, Train Loss: 0.0786, Train Acc: 0.6208, Val ROC AUC: 0.6613
+Validation metric improved. Saving model to best_model.pth
+Epoch 31, Train Loss: 0.0789, Train Acc: 0.6119, Val ROC AUC: 0.6574
+EarlyStopping counter: 1 out of 15
+Epoch 32, Train Loss: 0.0791, Train Acc: 0.5476, Val ROC AUC: 0.6644
+Validation metric improved. Saving model to best_model.pth
+Epoch 33, Train Loss: 0.0791, Train Acc: 0.5804, Val ROC AUC: 0.6617
+EarlyStopping counter: 1 out of 15
+Epoch 34, Train Loss: 0.0788, Train Acc: 0.6256, Val ROC AUC: 0.6719
+Validation metric improved. Saving model to best_model.pth
+Epoch 35, Train Loss: 0.0790, Train Acc: 0.6149, Val ROC AUC: 0.6723
+Validation metric improved. Saving model to best_model.pth
+Epoch 36, Train Loss: 0.0787, Train Acc: 0.6256, Val ROC AUC: 0.6698
+EarlyStopping counter: 1 out of 15
+Epoch 37, Train Loss: 0.0788, Train Acc: 0.6262, Val ROC AUC: 0.6825
+Validation metric improved. Saving model to best_model.pth
+Epoch 38, Train Loss: 0.0787, Train Acc: 0.6042, Val ROC AUC: 0.6829
+Validation metric improved. Saving model to best_model.pth
+Epoch 39, Train Loss: 0.0783, Train Acc: 0.6280, Val ROC AUC: 0.6773
+EarlyStopping counter: 1 out of 15
+Epoch 40, Train Loss: 0.0792, Train Acc: 0.5911, Val ROC AUC: 0.6781
+EarlyStopping counter: 2 out of 15
+Epoch 41, Train Loss: 0.0783, Train Acc: 0.6268, Val ROC AUC: 0.6786
+EarlyStopping counter: 3 out of 15
+Epoch 42, Train Loss: 0.0780, Train Acc: 0.6315, Val ROC AUC: 0.6842
+Validation metric improved. Saving model to best_model.pth
+Epoch 43, Train Loss: 0.0787, Train Acc: 0.5827, Val ROC AUC: 0.6864
+Validation metric improved. Saving model to best_model.pth
+Epoch 44, Train Loss: 0.0782, Train Acc: 0.5958, Val ROC AUC: 0.6879
+Validation metric improved. Saving model to best_model.pth
+Epoch 45, Train Loss: 0.0784, Train Acc: 0.5970, Val ROC AUC: 0.6889
+Validation metric improved. Saving model to best_model.pth
+Epoch 46, Train Loss: 0.0783, Train Acc: 0.6149, Val ROC AUC: 0.6890
+Validation metric improved. Saving model to best_model.pth
+Epoch 47, Train Loss: 0.0773, Train Acc: 0.6333, Val ROC AUC: 0.6890
+Validation metric improved. Saving model to best_model.pth
+Epoch 48, Train Loss: 0.0778, Train Acc: 0.6327, Val ROC AUC: 0.6935
+Validation metric improved. Saving model to best_model.pth
+Epoch 49, Train Loss: 0.0783, Train Acc: 0.5982, Val ROC AUC: 0.6936
+Validation metric improved. Saving model to best_model.pth
+Epoch 50, Train Loss: 0.0768, Train Acc: 0.6190, Val ROC AUC: 0.6981
+Validation metric improved. Saving model to best_model.pth
+Epoch 51, Train Loss: 0.0773, Train Acc: 0.6226, Val ROC AUC: 0.6964
+EarlyStopping counter: 1 out of 15
+Epoch 52, Train Loss: 0.0771, Train Acc: 0.6274, Val ROC AUC: 0.6872
+EarlyStopping counter: 2 out of 15
+Epoch 53, Train Loss: 0.0771, Train Acc: 0.6429, Val ROC AUC: 0.6962
+EarlyStopping counter: 3 out of 15
+Epoch 54, Train Loss: 0.0779, Train Acc: 0.6107, Val ROC AUC: 0.6977
+EarlyStopping counter: 4 out of 15
+Epoch 55, Train Loss: 0.0762, Train Acc: 0.6298, Val ROC AUC: 0.6957
+EarlyStopping counter: 5 out of 15
+Epoch 56, Train Loss: 0.0774, Train Acc: 0.6405, Val ROC AUC: 0.6853
+EarlyStopping counter: 6 out of 15
+Epoch 57, Train Loss: 0.0790, Train Acc: 0.6024, Val ROC AUC: 0.6757
+EarlyStopping counter: 7 out of 15
+Epoch 58, Train Loss: 0.0777, Train Acc: 0.6268, Val ROC AUC: 0.6927
+EarlyStopping counter: 8 out of 15
+Epoch 59, Train Loss: 0.0772, Train Acc: 0.6423, Val ROC AUC: 0.6976
+EarlyStopping counter: 9 out of 15
+Epoch 60, Train Loss: 0.0771, Train Acc: 0.6268, Val ROC AUC: 0.7035
+Validation metric improved. Saving model to best_model.pth
+Epoch 61, Train Loss: 0.0769, Train Acc: 0.6500, Val ROC AUC: 0.7055
+Validation metric improved. Saving model to best_model.pth
+Epoch 62, Train Loss: 0.0764, Train Acc: 0.6393, Val ROC AUC: 0.7078
+Validation metric improved. Saving model to best_model.pth
+Epoch 63, Train Loss: 0.0768, Train Acc: 0.6333, Val ROC AUC: 0.7082
+Validation metric improved. Saving model to best_model.pth
+Epoch 64, Train Loss: 0.0762, Train Acc: 0.6452, Val ROC AUC: 0.7096
+Validation metric improved. Saving model to best_model.pth
+Epoch 65, Train Loss: 0.0760, Train Acc: 0.6339, Val ROC AUC: 0.7137
+Validation metric improved. Saving model to best_model.pth
+Epoch 66, Train Loss: 0.0757, Train Acc: 0.6417, Val ROC AUC: 0.7127
+EarlyStopping counter: 1 out of 15
+Epoch 67, Train Loss: 0.0758, Train Acc: 0.6452, Val ROC AUC: 0.7145
+Validation metric improved. Saving model to best_model.pth
+Epoch 68, Train Loss: 0.0762, Train Acc: 0.6470, Val ROC AUC: 0.7078
+EarlyStopping counter: 1 out of 15
+Epoch 69, Train Loss: 0.0758, Train Acc: 0.6542, Val ROC AUC: 0.7128
+EarlyStopping counter: 2 out of 15
+Epoch 70, Train Loss: 0.0758, Train Acc: 0.6488, Val ROC AUC: 0.7178
+Validation metric improved. Saving model to best_model.pth
+Epoch 71, Train Loss: 0.0752, Train Acc: 0.6363, Val ROC AUC: 0.7209
+Validation metric improved. Saving model to best_model.pth
+Epoch 72, Train Loss: 0.0747, Train Acc: 0.6571, Val ROC AUC: 0.7205
+EarlyStopping counter: 1 out of 15
+Epoch 73, Train Loss: 0.0749, Train Acc: 0.6542, Val ROC AUC: 0.7198
+EarlyStopping counter: 2 out of 15
+Epoch 74, Train Loss: 0.0761, Train Acc: 0.6208, Val ROC AUC: 0.7188
+EarlyStopping counter: 3 out of 15
+Epoch 75, Train Loss: 0.0766, Train Acc: 0.6321, Val ROC AUC: 0.7229
+Validation metric improved. Saving model to best_model.pth
+Epoch 76, Train Loss: 0.0752, Train Acc: 0.6518, Val ROC AUC: 0.7247
+Validation metric improved. Saving model to best_model.pth
+Epoch 77, Train Loss: 0.0752, Train Acc: 0.6470, Val ROC AUC: 0.7181
+EarlyStopping counter: 1 out of 15
+Epoch 78, Train Loss: 0.0755, Train Acc: 0.6524, Val ROC AUC: 0.7242
+EarlyStopping counter: 2 out of 15
+Epoch 79, Train Loss: 0.0750, Train Acc: 0.6685, Val ROC AUC: 0.7225
+EarlyStopping counter: 3 out of 15
+Epoch 80, Train Loss: 0.0752, Train Acc: 0.6679, Val ROC AUC: 0.7275
+Validation metric improved. Saving model to best_model.pth
+Epoch 81, Train Loss: 0.0745, Train Acc: 0.6607, Val ROC AUC: 0.7217
+EarlyStopping counter: 1 out of 15
+Epoch 82, Train Loss: 0.0742, Train Acc: 0.6655, Val ROC AUC: 0.7317
+Validation metric improved. Saving model to best_model.pth
+Epoch 83, Train Loss: 0.0744, Train Acc: 0.6435, Val ROC AUC: 0.7363
+Validation metric improved. Saving model to best_model.pth
+Epoch 84, Train Loss: 0.0745, Train Acc: 0.6661, Val ROC AUC: 0.7318
+EarlyStopping counter: 1 out of 15
+Epoch 85, Train Loss: 0.0745, Train Acc: 0.6548, Val ROC AUC: 0.7353
+EarlyStopping counter: 2 out of 15
+Epoch 86, Train Loss: 0.0743, Train Acc: 0.6500, Val ROC AUC: 0.7335
+EarlyStopping counter: 3 out of 15
+Epoch 87, Train Loss: 0.0734, Train Acc: 0.6744, Val ROC AUC: 0.7376
+Validation metric improved. Saving model to best_model.pth
+Epoch 88, Train Loss: 0.0747, Train Acc: 0.6488, Val ROC AUC: 0.7323
+EarlyStopping counter: 1 out of 15
+Epoch 89, Train Loss: 0.0766, Train Acc: 0.6226, Val ROC AUC: 0.7343
+EarlyStopping counter: 2 out of 15
+Epoch 90, Train Loss: 0.0758, Train Acc: 0.6613, Val ROC AUC: 0.7275
+EarlyStopping counter: 3 out of 15
+Epoch 91, Train Loss: 0.0747, Train Acc: 0.6536, Val ROC AUC: 0.7312
+EarlyStopping counter: 4 out of 15
+Epoch 92, Train Loss: 0.0748, Train Acc: 0.6613, Val ROC AUC: 0.7376
+EarlyStopping counter: 5 out of 15
+Epoch 93, Train Loss: 0.0734, Train Acc: 0.6524, Val ROC AUC: 0.7344
+EarlyStopping counter: 6 out of 15
+Epoch 94, Train Loss: 0.0752, Train Acc: 0.6452, Val ROC AUC: 0.7373
+EarlyStopping counter: 7 out of 15
+Epoch 95, Train Loss: 0.0741, Train Acc: 0.6768, Val ROC AUC: 0.7299
+EarlyStopping counter: 8 out of 15
+Epoch 96, Train Loss: 0.0733, Train Acc: 0.6637, Val ROC AUC: 0.7424
+Validation metric improved. Saving model to best_model.pth
+Epoch 97, Train Loss: 0.0760, Train Acc: 0.6363, Val ROC AUC: 0.7353
+EarlyStopping counter: 1 out of 15
+Epoch 98, Train Loss: 0.0753, Train Acc: 0.6506, Val ROC AUC: 0.7378
+EarlyStopping counter: 2 out of 15
+Epoch 99, Train Loss: 0.0744, Train Acc: 0.6369, Val ROC AUC: 0.7393
+EarlyStopping counter: 3 out of 15
+Epoch 100, Train Loss: 0.0728, Train Acc: 0.6756, Val ROC AUC: 0.7415
+EarlyStopping counter: 4 out of 15
+Epoch 101, Train Loss: 0.0733, Train Acc: 0.6827, Val ROC AUC: 0.7303
+EarlyStopping counter: 5 out of 15
+Epoch 102, Train Loss: 0.0728, Train Acc: 0.6744, Val ROC AUC: 0.7412
+EarlyStopping counter: 6 out of 15
+Epoch 103, Train Loss: 0.0738, Train Acc: 0.6524, Val ROC AUC: 0.7408
+EarlyStopping counter: 7 out of 15
+Epoch 104, Train Loss: 0.0737, Train Acc: 0.6554, Val ROC AUC: 0.7424
+Validation metric improved. Saving model to best_model.pth
+Epoch 105, Train Loss: 0.0730, Train Acc: 0.6738, Val ROC AUC: 0.7384
+EarlyStopping counter: 1 out of 15
+Epoch 106, Train Loss: 0.0732, Train Acc: 0.6702, Val ROC AUC: 0.7368
+EarlyStopping counter: 2 out of 15
+Epoch 107, Train Loss: 0.0725, Train Acc: 0.6780, Val ROC AUC: 0.7412
+EarlyStopping counter: 3 out of 15
+Epoch 108, Train Loss: 0.0736, Train Acc: 0.6643, Val ROC AUC: 0.7354
+EarlyStopping counter: 4 out of 15
+Epoch 109, Train Loss: 0.0730, Train Acc: 0.6720, Val ROC AUC: 0.7412
+EarlyStopping counter: 5 out of 15
+Epoch 110, Train Loss: 0.0724, Train Acc: 0.6792, Val ROC AUC: 0.7350
+EarlyStopping counter: 6 out of 15
+Epoch 111, Train Loss: 0.0717, Train Acc: 0.6881, Val ROC AUC: 0.7414
+EarlyStopping counter: 7 out of 15
+Epoch 112, Train Loss: 0.0732, Train Acc: 0.6899, Val ROC AUC: 0.7396
+EarlyStopping counter: 8 out of 15
+Epoch 113, Train Loss: 0.0733, Train Acc: 0.6720, Val ROC AUC: 0.7424
+EarlyStopping counter: 9 out of 15
+Epoch 114, Train Loss: 0.0720, Train Acc: 0.6881, Val ROC AUC: 0.7426
+Validation metric improved. Saving model to best_model.pth
+(train_with_tune pid=39490) /Users/navneet/git/research/swarm-guard/.venv/lib/python3.9/site-packages/torch_geometric/data/in_memory_dataset.py:300: UserWarning: It is not recommended to directly access the internal storage format `data` of an 'InMemoryDataset'. The data of the dataset is already cached, so any modifications to `data` will not be reflected when accessing its elements. Clearing the cache now by removing all elements in `dataset._data_list`. If you are absolutely certain what you are doing, access the internal storage via `InMemoryDataset._data` instead to suppress this warning. Alternatively, you can access stacked individual attributes of every graph via `dataset.{attr_name}`.
+(train_with_tune pid=39490)   warnings.warn(msg) [repeated 2x across cluster]
+(train_with_tune pid=39490) /Users/navneet/git/research/swarm-guard/.venv/lib/python3.9/site-packages/torch_geometric/data/in_memory_dataset.py:300: UserWarning: It is not recommended to directly access the internal storage format `data` of an 'InMemoryDataset'. If you are absolutely certain what you are doing, access the internal storage via `InMemoryDataset._data` instead to suppress this warning. Alternatively, you can access stacked individual attributes of every graph via `dataset.{attr_name}`.
+(raylet) [2025-04-13 23:31:52,709 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 22.8873 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Epoch 115, Train Loss: 0.0735, Train Acc: 0.6792, Val ROC AUC: 0.7392
+EarlyStopping counter: 1 out of 15
+(raylet) [2025-04-13 23:32:02,785 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 22.139 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Epoch 116, Train Loss: 0.0720, Train Acc: 0.6780, Val ROC AUC: 0.7393
+EarlyStopping counter: 2 out of 15
+Epoch 117, Train Loss: 0.0731, Train Acc: 0.6702, Val ROC AUC: 0.7429
+Validation metric improved. Saving model to best_model.pth
+(raylet) [2025-04-13 23:32:12,857 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 22.1386 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Epoch 118, Train Loss: 0.0724, Train Acc: 0.6786, Val ROC AUC: 0.7404
+EarlyStopping counter: 1 out of 15
+Epoch 119, Train Loss: 0.0719, Train Acc: 0.6732, Val ROC AUC: 0.7448
+Validation metric improved. Saving model to best_model.pth
+(raylet) [2025-04-13 23:32:22,946 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 22.1378 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Epoch 120, Train Loss: 0.0711, Train Acc: 0.6839, Val ROC AUC: 0.7441
+EarlyStopping counter: 1 out of 15
+(raylet) [2025-04-13 23:32:33,029 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 22.1372 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Epoch 121, Train Loss: 0.0724, Train Acc: 0.6839, Val ROC AUC: 0.7485
+Validation metric improved. Saving model to best_model.pth
+Epoch 122, Train Loss: 0.0723, Train Acc: 0.6869, Val ROC AUC: 0.7511
+Validation metric improved. Saving model to best_model.pth
+(raylet) [2025-04-13 23:32:43,115 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 22.136 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Epoch 123, Train Loss: 0.0720, Train Acc: 0.6887, Val ROC AUC: 0.7451
+EarlyStopping counter: 1 out of 15
+(raylet) [2025-04-13 23:32:53,202 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 22.1356 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Epoch 124, Train Loss: 0.0724, Train Acc: 0.6821, Val ROC AUC: 0.7522
+Validation metric improved. Saving model to best_model.pth
+Epoch 125, Train Loss: 0.0728, Train Acc: 0.6560, Val ROC AUC: 0.7441
+EarlyStopping counter: 1 out of 15
+(raylet) [2025-04-13 23:33:03,290 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 22.1342 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Epoch 126, Train Loss: 0.0738, Train Acc: 0.6696, Val ROC AUC: 0.7496
+EarlyStopping counter: 2 out of 15
+Epoch 127, Train Loss: 0.0725, Train Acc: 0.6911, Val ROC AUC: 0.7486
+EarlyStopping counter: 3 out of 15
+(raylet) [2025-04-13 23:33:13,377 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 22.133 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Epoch 128, Train Loss: 0.0710, Train Acc: 0.6679, Val ROC AUC: 0.7465
+EarlyStopping counter: 4 out of 15
+Epoch 129, Train Loss: 0.0729, Train Acc: 0.6750, Val ROC AUC: 0.7468
+EarlyStopping counter: 5 out of 15
+(raylet) [2025-04-13 23:33:23,450 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 22.1326 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Epoch 130, Train Loss: 0.0730, Train Acc: 0.6542, Val ROC AUC: 0.7399
+EarlyStopping counter: 6 out of 15
+Epoch 131, Train Loss: 0.0721, Train Acc: 0.6804, Val ROC AUC: 0.7525
+Validation metric improved. Saving model to best_model.pth
+Epoch 132, Train Loss: 0.0730, Train Acc: 0.6738, Val ROC AUC: 0.7531
+Validation metric improved. Saving model to best_model.pth
+(raylet) [2025-04-13 23:33:33,535 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 22.1312 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Epoch 133, Train Loss: 0.0717, Train Acc: 0.6798, Val ROC AUC: 0.7411
+EarlyStopping counter: 1 out of 15
+Epoch 134, Train Loss: 0.0710, Train Acc: 0.6923, Val ROC AUC: 0.7543
+Validation metric improved. Saving model to best_model.pth
+(raylet) [2025-04-13 23:33:43,614 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 22.1296 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Epoch 135, Train Loss: 0.0712, Train Acc: 0.6827, Val ROC AUC: 0.7470
+EarlyStopping counter: 1 out of 15
+Epoch 136, Train Loss: 0.0723, Train Acc: 0.6810, Val ROC AUC: 0.7451
+EarlyStopping counter: 2 out of 15
+(raylet) [2025-04-13 23:33:53,696 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 22.1291 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Epoch 137, Train Loss: 0.0709, Train Acc: 0.6827, Val ROC AUC: 0.7514
+EarlyStopping counter: 3 out of 15
+Epoch 138, Train Loss: 0.0711, Train Acc: 0.6786, Val ROC AUC: 0.7497
+EarlyStopping counter: 4 out of 15
+(raylet) [2025-04-13 23:34:03,783 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 22.1288 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Epoch 139, Train Loss: 0.0711, Train Acc: 0.6970, Val ROC AUC: 0.7488
+EarlyStopping counter: 5 out of 15
+Epoch 140, Train Loss: 0.0715, Train Acc: 0.6625, Val ROC AUC: 0.7509
+EarlyStopping counter: 6 out of 15
+(raylet) [2025-04-13 23:34:13,867 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 22.1283 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Epoch 141, Train Loss: 0.0713, Train Acc: 0.6661, Val ROC AUC: 0.7501
+EarlyStopping counter: 7 out of 15
+Epoch 142, Train Loss: 0.0711, Train Acc: 0.6780, Val ROC AUC: 0.7535
+EarlyStopping counter: 8 out of 15
+(raylet) [2025-04-13 23:34:23,945 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 22.127 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Epoch 143, Train Loss: 0.0704, Train Acc: 0.6887, Val ROC AUC: 0.7454
+EarlyStopping counter: 9 out of 15
+(raylet) [2025-04-13 23:34:34,023 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 21.1259 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Epoch 144, Train Loss: 0.0708, Train Acc: 0.6780, Val ROC AUC: 0.7491
+EarlyStopping counter: 10 out of 15
+Epoch 145, Train Loss: 0.0712, Train Acc: 0.6750, Val ROC AUC: 0.7510
+EarlyStopping counter: 11 out of 15
+(raylet) [2025-04-13 23:34:44,107 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 21.1251 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Epoch 146, Train Loss: 0.0716, Train Acc: 0.6726, Val ROC AUC: 0.7565
+Validation metric improved. Saving model to best_model.pth
+(raylet) [2025-04-13 23:34:54,194 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 21.1267 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Epoch 147, Train Loss: 0.0712, Train Acc: 0.6750, Val ROC AUC: 0.7559
+EarlyStopping counter: 1 out of 15
+Epoch 148, Train Loss: 0.0717, Train Acc: 0.6792, Val ROC AUC: 0.7441
+EarlyStopping counter: 2 out of 15
+(raylet) [2025-04-13 23:35:04,271 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 21.1261 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Epoch 149, Train Loss: 0.0711, Train Acc: 0.6833, Val ROC AUC: 0.7597
+Validation metric improved. Saving model to best_model.pth
+(raylet) [2025-04-13 23:35:14,362 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 21.1257 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Epoch 150, Train Loss: 0.0715, Train Acc: 0.6875, Val ROC AUC: 0.7516
+EarlyStopping counter: 1 out of 15
+Epoch 151, Train Loss: 0.0697, Train Acc: 0.6839, Val ROC AUC: 0.7542
+EarlyStopping counter: 2 out of 15
+(raylet) [2025-04-13 23:35:24,453 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 21.1247 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Epoch 152, Train Loss: 0.0710, Train Acc: 0.6845, Val ROC AUC: 0.7517
+EarlyStopping counter: 3 out of 15
+Epoch 153, Train Loss: 0.0697, Train Acc: 0.6946, Val ROC AUC: 0.7460
+EarlyStopping counter: 4 out of 15
+Epoch 154, Train Loss: 0.0702, Train Acc: 0.6940, Val ROC AUC: 0.7570
+EarlyStopping counter: 5 out of 15
+(raylet) [2025-04-13 23:35:34,540 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 21.1245 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Epoch 155, Train Loss: 0.0695, Train Acc: 0.7042, Val ROC AUC: 0.7632
+Validation metric improved. Saving model to best_model.pth
+Epoch 156, Train Loss: 0.0701, Train Acc: 0.6946, Val ROC AUC: 0.7500
+EarlyStopping counter: 1 out of 15
+Epoch 157, Train Loss: 0.0715, Train Acc: 0.6952, Val ROC AUC: 0.7634
+Validation metric improved. Saving model to best_model.pth
+(raylet) [2025-04-13 23:35:44,623 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 21.1242 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Epoch 158, Train Loss: 0.0699, Train Acc: 0.6958, Val ROC AUC: 0.7668
+Validation metric improved. Saving model to best_model.pth
+Epoch 159, Train Loss: 0.0697, Train Acc: 0.7054, Val ROC AUC: 0.7606
+EarlyStopping counter: 1 out of 15
+Epoch 160, Train Loss: 0.0686, Train Acc: 0.6976, Val ROC AUC: 0.7612
+EarlyStopping counter: 2 out of 15
+(raylet) [2025-04-13 23:35:54,707 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 21.1236 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Epoch 161, Train Loss: 0.0710, Train Acc: 0.6774, Val ROC AUC: 0.7625
+EarlyStopping counter: 3 out of 15
+(raylet) [2025-04-13 23:36:04,791 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 21.1233 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Epoch 162, Train Loss: 0.0703, Train Acc: 0.6911, Val ROC AUC: 0.7630
+EarlyStopping counter: 4 out of 15
+Epoch 163, Train Loss: 0.0687, Train Acc: 0.6881, Val ROC AUC: 0.7696
+Validation metric improved. Saving model to best_model.pth
+(raylet) [2025-04-13 23:36:14,874 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 21.122 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Epoch 164, Train Loss: 0.0709, Train Acc: 0.6815, Val ROC AUC: 0.7688
+EarlyStopping counter: 1 out of 15
+Epoch 165, Train Loss: 0.0690, Train Acc: 0.6988, Val ROC AUC: 0.7689
+EarlyStopping counter: 2 out of 15
+(raylet) [2025-04-13 23:36:24,965 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 21.1207 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Epoch 166, Train Loss: 0.0704, Train Acc: 0.6810, Val ROC AUC: 0.7626
+EarlyStopping counter: 3 out of 15
+Epoch 167, Train Loss: 0.0689, Train Acc: 0.6899, Val ROC AUC: 0.7622
+EarlyStopping counter: 4 out of 15
+Epoch 168, Train Loss: 0.0696, Train Acc: 0.7006, Val ROC AUC: 0.7639
+EarlyStopping counter: 5 out of 15
+(raylet) [2025-04-13 23:36:35,047 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 21.1194 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Epoch 169, Train Loss: 0.0684, Train Acc: 0.7101, Val ROC AUC: 0.7708
+Validation metric improved. Saving model to best_model.pth
+(raylet) [2025-04-13 23:36:45,137 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 21.1189 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Epoch 170, Train Loss: 0.0702, Train Acc: 0.6982, Val ROC AUC: 0.7638
+EarlyStopping counter: 1 out of 15
+(raylet) [2025-04-13 23:36:55,224 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 21.1185 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Epoch 171, Train Loss: 0.0689, Train Acc: 0.7042, Val ROC AUC: 0.7561
+EarlyStopping counter: 2 out of 15
+Epoch 172, Train Loss: 0.0689, Train Acc: 0.6857, Val ROC AUC: 0.7641
+EarlyStopping counter: 3 out of 15
+Epoch 173, Train Loss: 0.0688, Train Acc: 0.7077, Val ROC AUC: 0.7651
+EarlyStopping counter: 4 out of 15
+(raylet) [2025-04-13 23:37:05,304 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 20.119 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Epoch 174, Train Loss: 0.0691, Train Acc: 0.6881, Val ROC AUC: 0.7735
+Validation metric improved. Saving model to best_model.pth
+(raylet) [2025-04-13 23:37:15,388 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 20.1178 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Epoch 175, Train Loss: 0.0703, Train Acc: 0.6946, Val ROC AUC: 0.7664
+EarlyStopping counter: 1 out of 15
+Epoch 176, Train Loss: 0.0689, Train Acc: 0.6911, Val ROC AUC: 0.7738
+Validation metric improved. Saving model to best_model.pth
+(raylet) [2025-04-13 23:37:25,465 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 20.1175 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Epoch 177, Train Loss: 0.0695, Train Acc: 0.6833, Val ROC AUC: 0.7735
+EarlyStopping counter: 1 out of 15
+Epoch 178, Train Loss: 0.0693, Train Acc: 0.6851, Val ROC AUC: 0.7681
+EarlyStopping counter: 2 out of 15
+(raylet) [2025-04-13 23:37:35,556 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 20.117 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Epoch 179, Train Loss: 0.0705, Train Acc: 0.6935, Val ROC AUC: 0.7594
+EarlyStopping counter: 3 out of 15
+(raylet) [2025-04-13 23:37:45,632 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 20.1162 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Epoch 180, Train Loss: 0.0687, Train Acc: 0.6964, Val ROC AUC: 0.7693
+EarlyStopping counter: 4 out of 15
+Epoch 181, Train Loss: 0.0695, Train Acc: 0.6911, Val ROC AUC: 0.7684
+EarlyStopping counter: 5 out of 15
+(raylet) [2025-04-13 23:37:55,719 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 20.1158 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Epoch 182, Train Loss: 0.0684, Train Acc: 0.7113, Val ROC AUC: 0.7715
+EarlyStopping counter: 6 out of 15
+Epoch 183, Train Loss: 0.0674, Train Acc: 0.7107, Val ROC AUC: 0.7662
+EarlyStopping counter: 7 out of 15
+Epoch 184, Train Loss: 0.0685, Train Acc: 0.7071, Val ROC AUC: 0.7692
+EarlyStopping counter: 8 out of 15
+(raylet) [2025-04-13 23:38:05,808 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 20.1155 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Epoch 185, Train Loss: 0.0699, Train Acc: 0.6857, Val ROC AUC: 0.7590
+EarlyStopping counter: 9 out of 15
+Epoch 186, Train Loss: 0.0692, Train Acc: 0.7024, Val ROC AUC: 0.7682
+EarlyStopping counter: 10 out of 15
+Epoch 187, Train Loss: 0.0683, Train Acc: 0.6911, Val ROC AUC: 0.7779
+Validation metric improved. Saving model to best_model.pth
+(raylet) [2025-04-13 23:38:15,892 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 20.1143 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Epoch 188, Train Loss: 0.0681, Train Acc: 0.7018, Val ROC AUC: 0.7700
+EarlyStopping counter: 1 out of 15
+(raylet) [2025-04-13 23:38:25,972 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 20.1139 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Epoch 189, Train Loss: 0.0692, Train Acc: 0.7042, Val ROC AUC: 0.7706
+EarlyStopping counter: 2 out of 15
+Epoch 190, Train Loss: 0.0686, Train Acc: 0.7036, Val ROC AUC: 0.7736
+EarlyStopping counter: 3 out of 15
+(raylet) [2025-04-13 23:38:36,057 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 20.1137 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Epoch 191, Train Loss: 0.0678, Train Acc: 0.7113, Val ROC AUC: 0.7722
+EarlyStopping counter: 4 out of 15
+Epoch 192, Train Loss: 0.0682, Train Acc: 0.6940, Val ROC AUC: 0.7716
+EarlyStopping counter: 5 out of 15
+(raylet) [2025-04-13 23:38:46,133 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 20.1133 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Epoch 193, Train Loss: 0.0678, Train Acc: 0.7101, Val ROC AUC: 0.7649
+EarlyStopping counter: 6 out of 15
+Epoch 194, Train Loss: 0.0680, Train Acc: 0.7149, Val ROC AUC: 0.7579
+EarlyStopping counter: 7 out of 15
+(raylet) [2025-04-13 23:38:56,216 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 20.1131 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Epoch 195, Train Loss: 0.0679, Train Acc: 0.6946, Val ROC AUC: 0.7804
+Validation metric improved. Saving model to best_model.pth
+Epoch 196, Train Loss: 0.0684, Train Acc: 0.6964, Val ROC AUC: 0.7764
+EarlyStopping counter: 1 out of 15
+Epoch 197, Train Loss: 0.0686, Train Acc: 0.6845, Val ROC AUC: 0.7805
+Validation metric improved. Saving model to best_model.pth
+(raylet) [2025-04-13 23:39:06,302 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 20.1128 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Epoch 198, Train Loss: 0.0679, Train Acc: 0.7006, Val ROC AUC: 0.7753
+EarlyStopping counter: 1 out of 15
+Epoch 199, Train Loss: 0.0692, Train Acc: 0.7125, Val ROC AUC: 0.7725
+EarlyStopping counter: 2 out of 15
+(raylet) [2025-04-13 23:39:16,382 E 39299 62085610] (raylet) file_system_monitor.cc:116: /tmp/ray/session_2025-04-13_22-54-37_134569_39293 is over 95% full, available space: 20.1154 GB; capacity: 460.432 GB. Object creation will fail if spilling is required.
+Epoch 200, Train Loss: 0.0685, Train Acc: 0.6869, Val ROC AUC: 0.7801
+EarlyStopping counter: 3 out of 15
+
+Classification Report:
+               precision    recall  f1-score   support
+
+        Real       0.95      0.62      0.75      3570
+        Fake       0.18      0.72      0.28       402
+
+    accuracy                           0.63      3972
+   macro avg       0.56      0.67      0.52      3972
+weighted avg       0.87      0.63      0.70      3972
+
+Saving model to /Users/navneet/git/research/swarm-guard/models/graph/graph_encoder.pth
+Saving model config to /Users/navneet/git/research/swarm-guard/models/graph/graph_encoder_config.json
+[TUNING] Final test ROC AUC with best config = 0.7546
+(train_with_tune pid=39489) in_channels: 9, num_classes: 2

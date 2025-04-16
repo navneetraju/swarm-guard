@@ -17,6 +17,4 @@ def move_to_device(net: nn.Module):
         device = "cuda:0"
         if torch.cuda.device_count() > 1:
             net = nn.DataParallel(net)
-    elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
-        device = "mps"
     net.to(device)

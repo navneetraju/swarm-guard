@@ -14,15 +14,16 @@ from src.modules.multi_modal.multi_modal_model import MultiModalModelForClassifi
 app = typer.Typer()
 
 
-def load_data(dataset_root_dir: str, validation_split: float, text_encoder_model_id: str, batch_size: int = 32):
+def load_data(train_dataset_root_dir: str, test_dataset_root_dir: str,
+              validation_split: float, text_encoder_model_id: str, batch_size: int = 32):
     train_dataset = AstroturfCampaignMultiModalDataset(
-        json_dir=f'{dataset_root_dir}/train',
+        json_dir=f'{train_dataset_root_dir}/graphs',
         model_id=text_encoder_model_id)
     val_size = int(len(train_dataset) * validation_split)
     train_size = len(train_dataset) - val_size
     train_dataset, val_dataset = torch.utils.data.random_split(train_dataset, [train_size, val_size])
     test_dataset = AstroturfCampaignMultiModalDataset(
-        json_dir=f'{dataset_root_dir}/test',
+        json_dir=f'{test_dataset_root_dir}/graphs',
         model_id=text_encoder_model_id)
     train_data_loader = torch.utils.data.DataLoader(
         train_dataset,
@@ -168,8 +169,10 @@ def main(
         text_encoder_model_id: str = typer.Option(default="answerdotai/ModernBERT-base",
                                                   help="Model ID for the text encoder."
                                                   ),
-        dataset_root_dir: str = typer.Option(default="dataset1",
-                                             help="Root directory of the dataset."),
+        train_dataset_root_dir: str = typer.Option(default="dataset1",
+                                                   help="Root directory of the dataset."),
+        test_dataset_root_dir: str = typer.Option(default="dataset2",
+                                                  help="Root directory of the test dataset."),
         self_attention_heads: int = typer.Option(default=4,
                                                  help="Number of self-attention heads."),
         embedding_dim: int = typer.Option(default=512,
@@ -204,7 +207,8 @@ def main(
     )
 
     train_data_loader, test_data_loader, validation_data_loader = load_data(
-        dataset_root_dir=dataset_root_dir,
+        train_dataset_root_dir=train_dataset_root_dir,
+        test_dataset_root_dir=test_dataset_root_dir,
         validation_split=validation_split,
         text_encoder_model_id=text_encoder_model_id,
         batch_size=batch_size

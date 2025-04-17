@@ -1,4 +1,5 @@
 import torch
+import torch.nn.functional as F
 import typer
 from sklearn.metrics import classification_report, roc_auc_score, confusion_matrix
 from tqdm import tqdm
@@ -13,7 +14,7 @@ from src.modules.multi_modal.multi_modal_model import MultiModalModelForClassifi
 app = typer.Typer()
 
 
-def load_data(dataset_root_dir: str, validation_split: 0.2, text_encoder_model_id: str, batch_size: int = 32):
+def load_data(dataset_root_dir: str, validation_split: float, text_encoder_model_id: str, batch_size: int = 32):
     train_dataset = AstroturfCampaignMultiModalDataset(
         json_dir=f'{dataset_root_dir}/train',
         model_id=text_encoder_model_id)
@@ -56,7 +57,9 @@ def train_function(model,
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
     early_stopping = EarlyStopping(patience=patience, verbose=True)
     device = "cuda" if torch.cuda.is_available() else "cpu"
+
     for epoch in range(max_epochs):
+        # Training loop
         model.train()
         train_loss = 0.0
         for batch in tqdm(train_data_loader, desc=f"Training Epoch {epoch + 1}/{max_epochs}"):
@@ -67,26 +70,44 @@ def train_function(model,
             graph_data.edge_index = graph_data.edge_index.to(device)
             graph_data.batch = graph_data.batch.to(device)
             labels = batch['labels'].to(device)
+
             optimizer.zero_grad()
-            output = model(text_input_ids, text_attention_mask, graph_data)
-            loss = criterion(output, labels)
+            outputs = model(text_input_ids, text_attention_mask, graph_data)
+            loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
             train_loss += loss.item()
 
         train_loss /= len(train_data_loader)
 
+        # Validation loop with ROC AUC
         model.eval()
         val_loss = 0.0
+        all_labels = []
+        all_scores = []
         with torch.no_grad():
             for batch in val_data_loader:
-                outputs = model(batch)
-                loss = criterion(outputs, batch.y)
+                text_input_ids = batch['text_input_ids'].to(device)
+                text_attention_mask = batch['text_attention_mask'].to(device)
+                graph_data = batch['graph_data']
+                graph_data.x = graph_data.x.to(device)
+                graph_data.edge_index = graph_data.edge_index.to(device)
+                graph_data.batch = graph_data.batch.to(device)
+                labels = batch['labels'].to(device)
+
+                outputs = model(text_input_ids, text_attention_mask, graph_data)
+                loss = criterion(outputs, labels)
                 val_loss += loss.item()
 
-        val_loss /= len(val_data_loader)
+                probs = F.softmax(outputs, dim=1)
+                pred_scores = probs[:, 1]
+                all_scores.extend(pred_scores.cpu().numpy())
+                all_labels.extend(labels.cpu().numpy())
 
-        print(f"Epoch {epoch + 1}/{max_epochs}, Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}")
+        val_loss /= len(val_data_loader)
+        roc_auc = roc_auc_score(all_labels, all_scores)
+        print(
+            f"Epoch {epoch + 1}/{max_epochs}, Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}, Val ROC AUC: {roc_auc:.4f}")
 
         # Early stopping check
         early_stopping(val_loss, model)
@@ -107,22 +128,30 @@ def run_test(model, test_data_loader, test_results_output_path):
     model.eval()
     all_preds = []
     all_labels = []
+    device = "cuda" if torch.cuda.is_available() else "cpu"
     with torch.no_grad():
         for batch in test_data_loader:
-            outputs = model(batch)
+            text_input_ids = batch['text_input_ids'].to(device)
+            text_attention_mask = batch['text_attention_mask'].to(device)
+            graph_data = batch['graph_data']
+            graph_data.x = graph_data.x.to(device)
+            graph_data.edge_index = graph_data.edge_index.to(device)
+            graph_data.batch = graph_data.batch.to(device)
+
+            outputs = model(text_input_ids, text_attention_mask, graph_data)
             preds = torch.argmax(outputs, dim=1)
             all_preds.extend(preds.cpu().numpy())
-            all_labels.extend(batch.y.cpu().numpy())
+            all_labels.extend(batch['labels'].cpu().numpy())
+
     all_preds = torch.tensor(all_preds)
     all_labels = torch.tensor(all_labels)
     report = classification_report(all_labels, all_preds, output_dict=True)
-    roc_auc = roc_auc_score(all_labels, all_preds)
+    roc_auc = roc_auc_score(all_labels, F.softmax(torch.stack(all_preds), dim=1)[:, 1])
     cm = confusion_matrix(all_labels, all_preds)
     print("Classification Report:")
     print(report)
     print("ROC AUC Score:", roc_auc)
-    print("Confusion Matrix:")
-    print(cm)
+    print("Confusion Matrix:", cm)
     with open(test_results_output_path, 'w') as f:
         f.write("Classification Report:\n")
         f.write(str(report))

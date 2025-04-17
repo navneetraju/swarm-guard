@@ -1,3 +1,9 @@
+import torch._dynamo
+
+torch._dynamo.config.suppress_errors = True
+import os
+
+os.environ["TORCH_COMPILE_DISABLE"] = "1"
 import torch
 import torch.nn.functional as F
 import typer

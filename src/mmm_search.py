@@ -1,3 +1,11 @@
+import torch._dynamo
+
+torch._dynamo.disable()
+torch._dynamo.config.suppress_errors = True
+import os
+
+os.environ["TORCH_COMPILE_DISABLE"] = "1"
+
 import random
 import tempfile
 from pathlib import Path
@@ -17,19 +25,27 @@ from src.dataset import AstroturfCampaignMultiModalDataset, astrorag_collate_fn
 from src.helpers.device_helpers import move_to_device
 from src.helpers.model_loaders import load_pre_trained_graph_encoder
 from src.modules.multi_modal.multi_modal_model import MultiModalModelForClassification
+from src.modules.loss.focal_loss import FocalLoss
 
 app = typer.Typer()
 
 search_space = {
     "self_attention_heads": tune.choice([1, 2, 4, 8, 16, 32]),
-    "embedding_dim": tune.choice([32, 64, 128, 256, 512, 728, 1024]),
+    "num_cross_modal_attention_heads": tune.choice([1, 2, 4, 8, 16, 32]),
+    "embedding_dim": tune.sample_from(lambda spec: random.choice(
+        [dim for dim in [32, 64, 128, 256, 512, 728, 1024]
+         if dim % spec.config["self_attention_heads"] == 0
+         and dim % spec.config["num_cross_modal_attention_heads"] == 0
+         ]
+    )),
     "self_attn_ff_dim": tune.choice([64, 128, 256, 512, 728, 1024]),
     "num_cross_modal_attention_blocks": tune.choice([1, 2, 4, 8]),
-    "num_cross_modal_attention_heads": tune.choice([1, 2, 4, 8, 16, 32]),
     "num_cross_modal_attention_ff_dim": tune.choice([64, 128, 256, 512, 728, 1024]),
     "batch_size": tune.choice([8, 16, 32, 64, 128, 256]),
     "lr": tune.loguniform(1e-5, 1e-2),
     "weight_decay": tune.loguniform(1e-5, 1e-2),
+    "alpha": tune.uniform(0.0, 1.0),
+    "gamma": tune.uniform(0.0, 5.0),
 }
 
 
@@ -49,12 +65,12 @@ def train_function(config, device: str, text_encoder, graph_encoder, output_clas
     move_to_device(model)
     data_loader = torch.utils.data.DataLoader(
         dataset,
-        batch_size=config['batch_size'],
+        batch_size=config["batch_size"],
         shuffle=True,
         collate_fn=astrorag_collate_fn,
     )
-    criterion = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.AdamW(model.parameters(), lr=config['lr'], weight_decay=config['weight_decay'])
+    criterion = FocalLoss(alpha=config["alpha"], gamma=config["gamma"])
+    optimizer = torch.optim.AdamW(model.parameters(), lr=config["lr"], weight_decay=config["weight_decay"])
     checkpoint = get_checkpoint()
     if checkpoint:
         with checkpoint.as_directory() as checkpoint_dir:
@@ -74,13 +90,13 @@ def train_function(config, device: str, text_encoder, graph_encoder, output_clas
         all_true = []
         all_probs = []
         for batch in tqdm(data_loader, desc=f"Training Epoch {epoch + 1}/{max_epochs}"):
-            text_input_ids = batch['text_input_ids'].to(device)
-            text_attention_mask = batch['text_attention_mask'].to(device)
-            graph_data = batch['graph_data']
+            text_input_ids = batch["text_input_ids"].to(device)
+            text_attention_mask = batch["text_attention_mask"].to(device)
+            graph_data = batch["graph_data"]
             graph_data.x = graph_data.x.to(device)
             graph_data.edge_index = graph_data.edge_index.to(device)
             graph_data.batch = graph_data.batch.to(device)
-            labels = batch['labels'].to(device)
+            labels = batch["labels"].to(device)
             optimizer.zero_grad()
             output = model(text_input_ids, text_attention_mask, graph_data)
             loss = criterion(output, labels)
@@ -89,18 +105,16 @@ def train_function(config, device: str, text_encoder, graph_encoder, output_clas
             loss_sum += loss.item()
             loss_count += 1
 
-            # Compute probabilities for the positive class (assumes binary classification)
             probs = torch.softmax(output, dim=1)[:, 1]
-            all_probs.extend(probs.detach().cpu().numpy().tolist())
-            all_true.extend(labels.detach().cpu().numpy().tolist())
+            all_probs.extend(probs.detach().cpu().tolist())
+            all_true.extend(labels.detach().cpu().tolist())
 
         avg_loss = loss_sum / loss_count if loss_count > 0 else 0
 
-        # Compute ROC AUC if there are at least two classes in the true labels
         try:
             roc_auc = roc_auc_score(all_true, all_probs)
         except ValueError:
-            roc_auc = float('nan')
+            roc_auc = float("nan")
 
         checkpoint_state = {
             "epoch": epoch + 1,
@@ -117,25 +131,25 @@ def train_function(config, device: str, text_encoder, graph_encoder, output_clas
 
 def load_data(dataset_root_dir: str, search_sample_size: int, text_encoder_model_id: str):
     full_dataset = AstroturfCampaignMultiModalDataset(
-        json_dir=f'{dataset_root_dir}/train',
-        model_id=text_encoder_model_id)
+        json_dir=f"{dataset_root_dir}/train",
+        model_id=text_encoder_model_id,
+    )
     sample_size = min(search_sample_size, len(full_dataset))
     indices = random.sample(range(len(full_dataset)), sample_size)
-    sampled_dataset = Subset(full_dataset, indices)
-    return sampled_dataset
+    return Subset(full_dataset, indices)
 
 
 @app.command()
 def main(
-        dataset_root_dir: str = typer.Option('./data', help="Path to the dataset root directory."),
-        search_results_output_file_path: str = typer.Option('./', help="Path to save search results."),
+        dataset_root_dir: str = typer.Option("./data", help="Path to the dataset root directory."),
+        search_results_output_file_path: str = typer.Option("./", help="Path to save search results."),
         search_sample_size: int = typer.Option(1000, help="Number of samples to use for search."),
-        text_encoder_model_id: str = typer.Option('answerdotai/ModernBERT-base',
+        text_encoder_model_id: str = typer.Option("answerdotai/ModernBERT-base",
                                                   help="Pretrained model ID for text encoder."),
-        graph_encoder_model_path: str = typer.Option('path/to/graph_encoder.pth',
+        graph_encoder_model_path: str = typer.Option("path/to/graph_encoder.pth",
                                                      help="Path to the pre-trained graph encoder."),
         max_epochs: int = typer.Option(10, help="Maximum number of epochs for training."),
-        output_classes: int = typer.Option(2, help="Number of output classes")
+        output_classes: int = typer.Option(2, help="Number of output classes"),
 ):
     text_encoder = AutoModel.from_pretrained(text_encoder_model_id)
     graph_encoder = load_pre_trained_graph_encoder(

@@ -10,7 +10,7 @@ from transformers import AutoTokenizer
 class AstroturfCampaignMultiModalDataset(Dataset):
     def __init__(self, json_dir, model_id, max_length=280, use_all_node_text=False):
         """
-        Dataset for loading and processing the AstroRAg dataset.
+        Dataset for loading and processing the Astroturf Campaigns dataset.
 
         Args:
             json_dir (str): Directory containing JSON files.

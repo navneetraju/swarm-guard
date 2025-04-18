@@ -64,8 +64,11 @@ class MultiModalModelForClassification(nn.Module):
         ])
 
         ############ OUTPUT LAYER ############
-        self.output_pre_norm = nn.LayerNorm(embedding_dim * 2)
-        self.output_ff = nn.Linear(embedding_dim * 2, output_channels)
+
+        # Gated Fusion
+        self.gate_fc = nn.Linear(embedding_dim * 2, 2)
+        self.post_fusion_norm = nn.LayerNorm(embedding_dim)
+        self.classifier = nn.Linear(embedding_dim, output_channels)
 
     def forward(self, text_input_ids, text_attention_mask, graph_data):
         text_embedding = self.text_encoder(input_ids=text_input_ids, attention_mask=text_attention_mask)[0]
@@ -97,13 +100,20 @@ class MultiModalModelForClassification(nn.Module):
         ############ CROSS MODAL ATTENTION ############
         projected_text_embedding, projected_graph_embedding = text_ff_out, graph_ff_out
         for block in self.cross_modal_attention_blocks:
-            projected_text_embedding, projected_graph_embedding = block(projected_text_embedding,
-                                                                        projected_graph_embedding)
+            projected_text_embedding_new = block(projected_text_embedding, projected_graph_embedding)
+            projected_graph_embedding_new = block(projected_graph_embedding, projected_text_embedding)
+            projected_text_embedding, projected_graph_embedding = (projected_text_embedding_new,
+                                                                   projected_graph_embedding_new)
 
         ############ OUTPUT LAYER ############
         global_text_embedding = torch.mean(projected_text_embedding, dim=1)
         global_graph_embedding = torch.mean(projected_graph_embedding, dim=1)
-        combined_embedding = torch.cat((global_text_embedding, global_graph_embedding), dim=-1)
-        combined_embedding = self.output_pre_norm(combined_embedding)
-        output = self.output_ff(combined_embedding)
-        return output
+
+        gated_out = self.gate_fc(torch.cat((global_text_embedding, global_graph_embedding), dim=-1))
+        gates = F.softmax(gated_out, dim=-1)
+        alpha, beta = gates[:, 0:1], gates[:, 1:2]
+        fused_embedding = (alpha * global_text_embedding) + (beta * global_graph_embedding)
+        fused_embedding = self.post_fusion_norm(fused_embedding)
+
+        logits = self.classifier(fused_embedding)
+        return logits

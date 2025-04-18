@@ -8,7 +8,7 @@ import typer
 from ray import tune
 from ray.tune import Checkpoint, get_checkpoint
 from ray.tune.schedulers import ASHAScheduler
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import average_precision_score
 from torch.utils.data import Dataset, Subset
 from tqdm import tqdm
 from transformers import AutoModel
@@ -24,12 +24,16 @@ app = typer.Typer()
 search_space = {
     "self_attention_heads": tune.choice([1, 2, 4, 8, 16, 32]),
     "num_cross_modal_attention_heads": tune.choice([1, 2, 4, 8, 16, 32]),
-    "embedding_dim": tune.sample_from(lambda spec: random.choice(
-        [dim for dim in [32, 64, 128, 256, 512, 728, 1024]
-         if dim % spec.config["self_attention_heads"] == 0
-         and dim % spec.config["num_cross_modal_attention_heads"] == 0
-         ]
-    )),
+    "embedding_dim": tune.sample_from(
+        lambda spec: random.choice(
+            [
+                dim
+                for dim in [32, 64, 128, 256, 512, 728, 1024]
+                if dim % spec.config["self_attention_heads"] == 0
+                   and dim % spec.config["num_cross_modal_attention_heads"] == 0
+            ]
+        )
+    ),
     "self_attn_ff_dim": tune.choice([64, 128, 256, 512, 728, 1024]),
     "num_cross_modal_attention_blocks": tune.choice([1, 2, 4, 8]),
     "num_cross_modal_attention_ff_dim": tune.choice([64, 128, 256, 512, 728, 1024]),
@@ -41,18 +45,31 @@ search_space = {
 }
 
 
-def train_function(config, device: str, text_encoder, graph_encoder, output_classes, dataset: Dataset,
-                   max_epochs: int = 10):
+def train_function(
+        config,
+        device: str,
+        text_encoder,
+        graph_encoder,
+        output_classes,
+        dataset: Dataset,
+        max_epochs: int = 10,
+):
     model = MultiModalModelForClassification(
         text_encoder=text_encoder,
         graph_encoder=graph_encoder,
         self_attention_heads=config["self_attention_heads"],
         embedding_dim=config["embedding_dim"],
-        num_cross_modal_attention_blocks=config["num_cross_modal_attention_blocks"],
-        num_cross_modal_attention_heads=config["num_cross_modal_attention_heads"],
+        num_cross_modal_attention_blocks=config[
+            "num_cross_modal_attention_blocks"
+        ],
+        num_cross_modal_attention_heads=config[
+            "num_cross_modal_attention_heads"
+        ],
         self_attn_ff_dim=config["self_attn_ff_dim"],
-        num_cross_modal_attention_ff_dim=config["num_cross_modal_attention_ff_dim"],
-        output_channels=output_classes
+        num_cross_modal_attention_ff_dim=config[
+            "num_cross_modal_attention_ff_dim"
+        ],
+        output_channels=output_classes,
     )
     move_to_device(model)
     data_loader = torch.utils.data.DataLoader(
@@ -62,7 +79,9 @@ def train_function(config, device: str, text_encoder, graph_encoder, output_clas
         collate_fn=astrorag_collate_fn,
     )
     criterion = FocalLoss(alpha=config["alpha"], gamma=config["gamma"])
-    optimizer = torch.optim.AdamW(model.parameters(), lr=config["lr"], weight_decay=config["weight_decay"])
+    optimizer = torch.optim.AdamW(
+        model.parameters(), lr=config["lr"], weight_decay=config["weight_decay"]
+    )
     checkpoint = get_checkpoint()
     if checkpoint:
         with checkpoint.as_directory() as checkpoint_dir:
@@ -81,7 +100,9 @@ def train_function(config, device: str, text_encoder, graph_encoder, output_clas
         loss_count = 0
         all_true = []
         all_probs = []
-        for batch in tqdm(data_loader, desc=f"Training Epoch {epoch + 1}/{max_epochs}"):
+        for batch in tqdm(
+                data_loader, desc=f"Training Epoch {epoch + 1}/{max_epochs}"
+        ):
             text_input_ids = batch["text_input_ids"].to(device)
             text_attention_mask = batch["text_attention_mask"].to(device)
             graph_data = batch["graph_data"]
@@ -104,21 +125,23 @@ def train_function(config, device: str, text_encoder, graph_encoder, output_clas
         avg_loss = loss_sum / loss_count if loss_count > 0 else 0
 
         try:
-            roc_auc = roc_auc_score(all_true, all_probs)
+            pr_auc = average_precision_score(all_true, all_probs)
         except ValueError:
-            roc_auc = float("nan")
+            pr_auc = float("nan")
 
         checkpoint_state = {
             "epoch": epoch + 1,
             "net_state_dict": model.state_dict(),
-            "optimizer_state_dict": optimizer.state_dict()
+            "optimizer_state_dict": optimizer.state_dict(),
         }
         with tempfile.TemporaryDirectory() as checkpoint_dir:
             data_path = Path(checkpoint_dir) / "data.pkl"
             with open(data_path, "wb") as fp:
                 pickle.dump(checkpoint_state, fp)
             checkpoint = Checkpoint.from_directory(checkpoint_dir)
-            tune.report({"loss": avg_loss, "roc_auc": roc_auc}, checkpoint=checkpoint)
+            tune.report(
+                {"loss": avg_loss, "pr_auc": pr_auc}, checkpoint=checkpoint
+            )
 
 
 def load_data(dataset_root_dir: str, search_sample_size: int, text_encoder_model_id: str):
@@ -133,29 +156,37 @@ def load_data(dataset_root_dir: str, search_sample_size: int, text_encoder_model
 
 @app.command()
 def main(
-        dataset_root_dir: str = typer.Option("./data", help="Path to the dataset root directory."),
-        search_results_output_file_path: str = typer.Option("./", help="Path to save search results."),
-        search_sample_size: int = typer.Option(1000, help="Number of samples to use for search."),
-        text_encoder_model_id: str = typer.Option("answerdotai/ModernBERT-base",
-                                                  help="Pretrained model ID for text encoder."),
-        graph_encoder_model_path: str = typer.Option("path/to/graph_encoder.pth",
-                                                     help="Path to the pre-trained graph encoder."),
+        dataset_root_dir: str = typer.Option(
+            "./data", help="Path to the dataset root directory."
+        ),
+        search_results_output_file_path: str = typer.Option(
+            "./", help="Path to save search results."
+        ),
+        search_sample_size: int = typer.Option(
+            1000, help="Number of samples to use for search."
+        ),
+        text_encoder_model_id: str = typer.Option(
+            "answerdotai/ModernBERT-base", help="Pretrained model ID for text encoder."
+        ),
+        graph_encoder_model_path: str = typer.Option(
+            "path/to/graph_encoder.pth", help="Path to the pre-trained graph encoder."
+        ),
         max_epochs: int = typer.Option(10, help="Maximum number of epochs for training."),
         output_classes: int = typer.Option(2, help="Number of output classes"),
 ):
     text_encoder = AutoModel.from_pretrained(text_encoder_model_id)
     graph_encoder = load_pre_trained_graph_encoder(
         model_path=graph_encoder_model_path,
-        device="cuda" if torch.cuda.is_available() else "cpu"
+        device="cuda" if torch.cuda.is_available() else "cpu",
     )
     dataset = load_data(
         dataset_root_dir=dataset_root_dir,
         search_sample_size=search_sample_size,
-        text_encoder_model_id=text_encoder_model_id
+        text_encoder_model_id=text_encoder_model_id,
     )
     scheduler = ASHAScheduler(
-        metric="loss",
-        mode="min",
+        metric="pr_auc",
+        mode="max",
         max_t=max_epochs,
         grace_period=1,
         reduction_factor=2,
@@ -172,7 +203,7 @@ def main(
     abs_storage_path = Path(search_results_output_file_path).absolute().as_uri()
     analysis = tune.run(
         trainable,
-        resources_per_trial={"cpu": 1, "gpu": 1},
+        resources_per_trial={"cpu": 8, "gpu": 1},
         config=search_space,
         num_samples=10,
         storage_path=abs_storage_path,
@@ -180,10 +211,10 @@ def main(
         scheduler=scheduler,
         stop={"training_iteration": max_epochs},
     )
-    best_trial = analysis.get_best_trial("loss", "min", "last")
+    best_trial = analysis.get_best_trial("pr_auc", "max", "last")
     print(f"Best trial config: {best_trial.config}")
     print(f"Best trial final validation loss: {best_trial.last_result['loss']}")
-    print(f"Best trial final ROC AUC: {best_trial.last_result['roc_auc']}")
+    print(f"Best trial final PR AUC: {best_trial.last_result['pr_auc']}")
     output_file = Path(search_results_output_file_path) / "analysis.pkl"
     with open(output_file, "wb") as f:
         pickle.dump(analysis, f)

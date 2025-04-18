@@ -20,4 +20,4 @@ OUTPUT_DIR=$1
 python3 -m src.mmm_search \
   --dataset-root-dir ~/data \
   --search-results-output-file-path "${OUTPUT_DIR}" \
-  --graph-encoder-model-path ~/models/graph_encoder/graph_encoder.pth
+  --graph-encoder-model-path ~/models/graph/graph_encoder.pth

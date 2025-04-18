@@ -1,11 +1,3 @@
-import torch._dynamo
-
-torch._dynamo.disable()
-torch._dynamo.config.suppress_errors = True
-import os
-
-os.environ["TORCH_COMPILE_DISABLE"] = "1"
-
 import random
 import tempfile
 from pathlib import Path
@@ -24,8 +16,8 @@ from transformers import AutoModel
 from src.dataset import AstroturfCampaignMultiModalDataset, astrorag_collate_fn
 from src.helpers.device_helpers import move_to_device
 from src.helpers.model_loaders import load_pre_trained_graph_encoder
-from src.modules.multi_modal.multi_modal_model import MultiModalModelForClassification
 from src.modules.loss.focal_loss import FocalLoss
+from src.modules.multi_modal.multi_modal_model import MultiModalModelForClassification
 
 app = typer.Typer()
 
@@ -131,7 +123,7 @@ def train_function(config, device: str, text_encoder, graph_encoder, output_clas
 
 def load_data(dataset_root_dir: str, search_sample_size: int, text_encoder_model_id: str):
     full_dataset = AstroturfCampaignMultiModalDataset(
-        json_dir=f"{dataset_root_dir}/train",
+        json_dir=f"{dataset_root_dir}/train/graphs",
         model_id=text_encoder_model_id,
     )
     sample_size = min(search_sample_size, len(full_dataset))
@@ -180,7 +172,7 @@ def main(
     abs_storage_path = Path(search_results_output_file_path).absolute().as_uri()
     analysis = tune.run(
         trainable,
-        resources_per_trial={"cpu": 1, "gpu": 0},
+        resources_per_trial={"cpu": 1, "gpu": 1},
         config=search_space,
         num_samples=10,
         storage_path=abs_storage_path,

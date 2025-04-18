@@ -3,73 +3,51 @@ import os
 import os.path as osp
 
 import torch
-from torch.serialization import safe_globals
-from torch_geometric.data import InMemoryDataset, Data
-from torch_geometric.data.data import DataEdgeAttr, DataTensorAttr
-from torch_geometric.data.storage import GlobalStorage
+from torch.utils.data import IterableDataset
+from torch_geometric.data import Data
 
 
-class AstroturfCampaignGraphDataset(InMemoryDataset):
-    def __init__(self, root, split='train', transform=None, pre_transform=None):
-        """
-        Args:
-            root (str): Root directory containing:
-                        - train/graphs/*.json
-                        - test/graphs/*.json
-            split (str): Which split to load; either 'train' or 'test'.
-            transform (callable, optional): A function/transform that takes in a Data object
-                                            and returns a transformed version.
-            pre_transform (callable, optional): A function/transform that takes in a Data object
-                                                and returns a transformed version.
-        """
-        self.split = split  # 'train' or 'test'
-        super(AstroturfCampaignGraphDataset, self).__init__(root, transform, pre_transform)
-        # Allow safe globals for certain PyG types during unpickling.
-        with safe_globals([DataEdgeAttr, DataTensorAttr, GlobalStorage]):
-            self.data, self.slices = torch.load(self.processed_paths[0])
+class AstroturfCampaignGraphDataset(IterableDataset):
+    """
+    An iterable PyG dataset that streams graphs from raw JSON files without loading
+    everything into memory.
 
-    @property
-    def raw_dir(self):
-        # JSON files now live under root/{split}/graphs/
-        return osp.join(self.root, self.split, 'graphs')
+    Args:
+        root (str): Root directory containing `train/graphs/` and `test/graphs/`.
+        split (str): Which split to iterate; either 'train' or 'test'.
+        transform (callable, optional): A function/transform that takes in a Data object
+                                        and returns a transformed version.
+        shuffle (bool, optional): Whether to shuffle file order each epoch.
+    """
 
-    @property
-    def raw_file_names(self):
-        # Return all JSON files in the chosen split/graphs folder.
-        return [f for f in os.listdir(self.raw_dir) if f.endswith('.json')]
+    def __init__(self, root: str, split: str = 'train', transform=None, shuffle: bool = False):
+        self.root = root
+        self.split = split
+        self.transform = transform
+        self.shuffle = shuffle
+        self.raw_dir = osp.join(self.root, self.split, 'graphs')
+        self._file_list = [f for f in os.listdir(self.raw_dir) if f.endswith('.json')]
 
-    @property
-    def processed_dir(self):
-        # Processed files will still go under root/processed
-        return osp.join(self.root, 'processed')
-
-    @property
-    def processed_file_names(self):
-        # Use split-specific naming.
-        return [f"data_{self.split}.pt"]
-
-    def download(self):
-        # No-op: data assumed to already exist under raw_dir.
-        pass
-
-    def process(self):
-        data_list = []
-        for file_name in self.raw_file_names:
-            file_path = osp.join(self.raw_dir, file_name)
-            with open(file_path, 'r') as f:
+    def __iter__(self):
+        files = list(self._file_list)
+        if self.shuffle:
+            random.shuffle(files)
+        for file_name in files:
+            path = osp.join(self.raw_dir, file_name)
+            with open(path, 'r') as f:
                 graph_json = json.load(f)
 
             # 1. Label
-            label_str = graph_json.get("label", "real").lower()
-            label_val = 0 if label_str == "real" else 1
+            label = graph_json.get("label", "real").lower()
+            y = torch.tensor([0 if label == "real" else 1], dtype=torch.long)
 
-            # 2. Nodes → feature vectors
+            # 2. Node features
             nodes = graph_json.get("nodes", [])
-            features_list = []
-            node_id_to_index = {}
+            node_id_to_idx = {}
+            feats = []
             for idx, node in enumerate(nodes):
-                node_id_to_index[node.get("id")] = idx
-                feature_vector = [
+                node_id_to_idx[node.get("id")] = idx
+                feats.append([
                     int(node.get("verified", 0)),
                     node.get("followers_count", 0),
                     node.get("following_count", 0),
@@ -79,43 +57,20 @@ class AstroturfCampaignGraphDataset(InMemoryDataset):
                     len((node.get("associated_user_profile_description") or "").split()),
                     node.get("delay", 0),
                     len((node.get("tweet_text") or "").split())
-                ]
-                features_list.append(feature_vector)
-            x = torch.tensor(features_list, dtype=torch.float)
+                ])
+            x = torch.tensor(feats, dtype=torch.float)
 
-            # 3. Edges
+            # 3. Edge index
             edges = graph_json.get("edges", [])
-            src_list, tgt_list = [], []
+            src, dst = [], []
             for edge in edges:
                 s, t = edge.get("source"), edge.get("target")
-                if s in node_id_to_index and t in node_id_to_index:
-                    src_list.append(node_id_to_index[s])
-                    tgt_list.append(node_id_to_index[t])
-            edge_index = (torch.tensor([src_list, tgt_list], dtype=torch.long)
-                          if src_list else torch.empty((2, 0), dtype=torch.long))
+                if s in node_id_to_idx and t in node_id_to_idx:
+                    src.append(node_id_to_idx[s])
+                    dst.append(node_id_to_idx[t])
+            edge_index = torch.tensor([src, dst], dtype=torch.long) if src else torch.empty((2, 0), dtype=torch.long)
 
-            # 4. Label tensor
-            y = torch.tensor([label_val], dtype=torch.long)
-
-            # 5. Build Data and append
-            data_list.append(Data(x=x, edge_index=edge_index, y=y))
-
-        # Collate & save
-        os.makedirs(self.processed_dir, exist_ok=True)
-        data, slices = self.collate(data_list)
-        torch.save((data, slices),
-                   osp.join(self.processed_dir, self.processed_file_names[0]))
-
-    @property
-    def num_features(self):
-        if len(self) > 0 and hasattr(self[0], "x"):
-            return self[0].x.size(1)
-        return 0
-
-    @property
-    def num_classes(self):
-        if hasattr(self, "data") and hasattr(self.data, "y"):
-            return int(self.data.y.max().item() + 1)
-        if len(self) > 0 and hasattr(self[0], "y"):
-            return int(self[0].y.max().item() + 1)
-        return 0
+            data = Data(x=x, edge_index=edge_index, y=y)
+            if self.transform:
+                data = self.transform(data)
+            yield data

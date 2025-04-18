@@ -1,326 +1,263 @@
 import json
 import os
+import os.path as osp
 import random
-from datetime import datetime
 
+import numpy as np
 import ray
 import torch
 import typer
 from ray import tune
 from ray.tune.schedulers import ASHAScheduler
-from sklearn.metrics import classification_report, roc_auc_score
-from torch.utils.data import ConcatDataset, Subset
-from torch.utils.tensorboard import SummaryWriter
+from sklearn.metrics import (
+    classification_report,
+    confusion_matrix,
+    roc_auc_score,
+)
 from torch_geometric.loader import DataLoader
 
-from src.helpers.dataset_helpers import load_astroturf_datasets, graph_dataset_stats
+from src.dataset.astroturf_graph_dataset import AstroturfCampaignGraphDataset
 from src.helpers.device_helpers import get_device
 from src.helpers.early_stopping import EarlyStopping
 from src.modules.graph_encoder import UPFDGraphSageNet
 from src.modules.loss.focal_loss import FocalLoss
 
 
-def downsample_majority_class(dataset, majority_label=0):
-    """
-    Downsamples the majority class in a dataset.
-
-    Args:
-        dataset: A dataset where each sample has a .y attribute.
-        majority_label: The label of the majority class.
-    Returns:
-        A torch.utils.data.Subset containing all minority class samples along with
-        a random subset of the majority class equal in size to the minority class.
-    """
-    majority_indices = [i for i, data in enumerate(dataset) if data.y.item() == majority_label]
-    minority_indices = [i for i, data in enumerate(dataset) if data.y.item() != majority_label]
-    print(f"Before downsampling: {len(majority_indices)} majority samples, {len(minority_indices)} minority samples.")
-
-    if not minority_indices:
-        raise ValueError("No samples found for the minority class!")
-
-    random.shuffle(majority_indices)
-    majority_downsampled = majority_indices[:len(minority_indices)]
-    selected_indices = majority_downsampled + minority_indices
-    random.shuffle(selected_indices)
-    print(
-        f"After downsampling: {len(majority_downsampled)} majority samples, {len(minority_indices)} minority samples, total: {len(selected_indices)} samples.")
-
-    return Subset(dataset, selected_indices)
-
-
 def get_dataset_attributes(dataset):
-    """
-    Retrieve in_channels and num_classes from a dataset.
-    Handles if the dataset is a Subset or a ConcatDataset.
-    """
-    if isinstance(dataset, ConcatDataset):
-        base_ds = dataset.datasets[0]
-    elif hasattr(dataset, 'dataset'):
-        base_ds = dataset.dataset
-    else:
-        base_ds = dataset
-
-    in_channels = getattr(base_ds, "num_features", base_ds[0].x.size(1))
-    if hasattr(base_ds, "num_classes"):
-        num_classes = base_ds.num_classes
-    else:
-        labels = [data.y.item() for data in base_ds]
-        num_classes = int(max(labels)) + 1
-    return in_channels, num_classes
+    """Return the feature dimension and number of classes for a dataset."""
+    first_graph = next(iter(dataset))
+    feature_dim = first_graph.x.size(1)
+    num_classes = 2  # dataset is always binary‑labelled
+    return feature_dim, num_classes
 
 
-def train_one_epoch(model, loader, optimizer, device, criterion):
+def downsample_majority_class(dataset, majority_label: int = 0):
+    """Down‑sample majority‑class JSON files so the dataset becomes class‑balanced."""
+    majority_files, minority_files = [], []
+
+    for filename in dataset._file_list:
+        with open(osp.join(dataset.raw_dir, filename), "r") as json_file:
+            label_str = json.load(json_file).get("label", "real").lower()
+            label_int = 0 if label_str == "real" else 1
+
+        (majority_files if label_int == majority_label else minority_files).append(filename)
+
+    if not minority_files:
+        raise ValueError("No minority‑class samples found!")
+
+    dataset._file_list = random.sample(majority_files, len(minority_files)) + minority_files
+    random.shuffle(dataset._file_list)
+    return dataset
+
+
+def train_one_epoch(
+        model,
+        data_loader,
+        optimizer,
+        device,
+        criterion,
+        max_grad_norm: float = 5.0,
+):
+    """Run a full training epoch and return average loss and accuracy."""
     model.train()
-    total_loss = 0.0
-    total_correct = 0
-    total_examples = 0
+    total_loss = total_correct = total_examples = 0
 
-    for data in loader:
-        data = data.to(device)
+    for batch in data_loader:
+        batch = batch.to(device)
         optimizer.zero_grad()
-        out, _, _ = model(data.x, data.edge_index, data.batch)
-        loss = criterion(out, data.y)
+        logits, *_ = model(batch.x, batch.edge_index, batch.batch)
+        loss = criterion(logits, batch.y)
+
+        if not torch.isfinite(loss):
+            print("Non‑finite loss encountered. Skipping batch.")
+            continue
+
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)
         optimizer.step()
 
-        total_loss += float(loss) * data.num_graphs
-        pred = out.argmax(dim=-1)
-        total_correct += int((pred == data.y).sum())
-        total_examples += data.num_graphs
+        total_loss += loss.item() * batch.num_graphs
+        total_correct += (logits.argmax(dim=-1) == batch.y).sum().item()
+        total_examples += batch.num_graphs
 
-    avg_loss = total_loss / total_examples
-    accuracy = total_correct / total_examples
-    return avg_loss, accuracy
+    return total_loss / total_examples, total_correct / total_examples
 
 
 @torch.no_grad()
-def evaluate_auc(model, loader, device):
-    """
-    Evaluates the model using ROC AUC (binary classification, class 1 probability).
-    """
+def evaluate_auc(model, data_loader, device):
+    """Compute ROC‑AUC on a data loader using softmax probabilities."""
     model.eval()
-    y_true, y_prob = [], []
-    for data in loader:
-        data = data.to(device)
-        out, _, _ = model(data.x, data.edge_index, data.batch)
-        probs = torch.softmax(out, dim=-1)[:, 1].detach().cpu().numpy()
-        y_true.extend(data.y.cpu().numpy())
-        y_prob.extend(probs)
-    try:
-        roc_auc = roc_auc_score(y_true, y_prob)
-    except ValueError:
-        roc_auc = 0.0
-    return roc_auc
+    labels_true, probabilities = [], []
+
+    for batch in data_loader:
+        batch = batch.to(device)
+        logits, *_ = model(batch.x, batch.edge_index, batch.batch)
+        probs = torch.softmax(logits, dim=-1)[:, 1]  # probability for the "Fake" class
+        probs = torch.nan_to_num(probs, nan=0.5).cpu().numpy()
+
+        labels_true.extend(batch.y.cpu().numpy())
+        probabilities.extend(probs)
+
+    if np.isnan(probabilities).any():
+        return 0.0
+
+    return (
+        roc_auc_score(labels_true, probabilities) if len(set(labels_true)) > 1 else 0.0
+    )
 
 
 @torch.no_grad()
-def get_predictions(model, loader, device):
+def get_predictions(model, data_loader, device):
+    """Return ground‑truth labels and hard predictions for a data loader."""
+    labels_true, preds_hard = [], []
     model.eval()
-    all_preds, all_labels = [], []
-    for data in loader:
-        data = data.to(device)
-        out, _, _ = model(data.x, data.edge_index, data.batch)
-        preds = out.argmax(dim=-1).cpu().numpy()
-        all_preds.extend(preds)
-        all_labels.extend(data.y.cpu().numpy())
-    return all_labels, all_preds
+
+    for batch in data_loader:
+        batch = batch.to(device)
+        logits, *_ = model(batch.x, batch.edge_index, batch.batch)
+        labels_true.extend(batch.y.cpu().numpy())
+        preds_hard.extend(logits.argmax(dim=-1).cpu().numpy())
+
+    return labels_true, preds_hard
 
 
 def run_single_train(
         train_dataset,
         val_dataset,
         test_dataset,
-        hidden_channels: int,
-        dropout: float,
-        lr: float,
-        weight_decay: float,
-        epochs: int,
-        batch_size: int,
-        focal_alpha: float = 1.0,
-        focal_gamma: float = 2.0,
-        patience: int = 10,
-        save_model: bool = True,
-        saved_model_path: str = "../models/graph/",
-        write_to_tensorboard: bool = False,
-        tensorboard_log_dir: str = "./runs",
-        include_config: bool = True
+        hidden_channels,
+        dropout,
+        lr,
+        weight_decay,
+        epochs,
+        batch_size,
+        focal_alpha,
+        focal_gamma,
+        patience,
+        save_model,
+        save_dir,
 ):
-    """
-    Performs one training run with the provided hyperparameters.
-    Uses ROC AUC for early stopping.
-    """
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+    os.makedirs(save_dir, exist_ok=True)
+
+    train_loader = DataLoader(train_dataset, batch_size=batch_size)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size)
 
     in_channels, num_classes = get_dataset_attributes(train_dataset)
-
     device = get_device()
-    model = UPFDGraphSageNet(
-        in_channels=in_channels,
-        hidden_channels=hidden_channels,
-        num_classes=num_classes,
-        dropout=dropout
-    ).to(device)
 
+    model = UPFDGraphSageNet(in_channels, hidden_channels, num_classes, dropout).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
-
-    # Use FocalLoss instead of CrossEntropyLoss.
-    criterion = FocalLoss(alpha=focal_alpha, gamma=focal_gamma, reduction="mean")
-
+    criterion = FocalLoss(alpha=focal_alpha, gamma=focal_gamma)
     early_stopper = EarlyStopping(patience=patience, verbose=True, mode="max")
-    writer = SummaryWriter(log_dir=tensorboard_log_dir) if write_to_tensorboard else None
 
     for epoch in range(1, epochs + 1):
-        train_loss, train_acc = train_one_epoch(model, train_loader, optimizer, device, criterion)
-        val_roc_auc = evaluate_auc(model, val_loader, device)
+        train_loss, train_acc = train_one_epoch(
+            model, train_loader, optimizer, device, criterion
+        )
+        val_auc = evaluate_auc(model, val_loader, device)
         print(
-            f"Epoch {epoch}, Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f}, Val ROC AUC: {val_roc_auc:.4f}")
+            f"Epoch {epoch:03d} | loss {train_loss:.4f} | acc {train_acc:.4f} | val‑AUC {val_auc:.4f}"
+        )
 
-        if write_to_tensorboard:
-            writer.add_scalar("Train Loss", train_loss, epoch)
-            writer.add_scalar("Train Accuracy", train_acc, epoch)
-            writer.add_scalar("Val ROC AUC", val_roc_auc, epoch)
-
-        early_stopper(val_roc_auc, model)
+        early_stopper(val_auc, model)
         if early_stopper.early_stop:
-            model.load_state_dict(torch.load('best_model.pth'))
-            print("Early stopping triggered. Restoring best model...")
+            print("Early‑stopping triggered.")
             break
 
-    # Evaluate on test set
-    test_roc_auc = evaluate_auc(model, test_loader, device)
+    model.load_state_dict(torch.load("best_model.pth", map_location=device))
+
+    test_auc = evaluate_auc(model, test_loader, device)
     y_true, y_pred = get_predictions(model, test_loader, device)
-    report = classification_report(y_true, y_pred, target_names=["Real", "Fake"])
-    print("\nClassification Report:\n", report)
 
-    # Save classification report to disk
-    report_path = os.path.join(tensorboard_log_dir, "classification_report.txt")
-    with open(report_path, "w") as f:
-        f.write(report)
+    print("\nClassification report")
+    print(classification_report(y_true, y_pred, target_names=["Real", "Fake"], digits=4))
+    confusion = confusion_matrix(y_true, y_pred, labels=[0, 1])
+    print("Confusion matrix (rows true, cols pred):\n", confusion)
 
-    early_stopper.clean_up()
-    if write_to_tensorboard:
-        writer.close()
-
-    # Save the final model along with configuration to the same directory.
     if save_model:
-        os.makedirs(os.path.dirname(saved_model_path), exist_ok=True)
-        model_config = {
+        config = {
             "in_channels": in_channels,
             "hidden_channels": hidden_channels,
             "num_classes": num_classes,
-            "dropout": dropout,
-            "lr": lr,
-            "weight_decay": weight_decay,
-            "batch_size": batch_size,
-            "epochs": epochs,
-            "focal_alpha": focal_alpha,
-            "focal_gamma": focal_gamma
         }
-        state = {
-            "model_state_dict": model.state_dict(),
-            "config": model_config
-        }
-        print(f"Saving model to {saved_model_path}/graph_encoder.pth")
-        torch.save(state, f"{saved_model_path}/graph_encoder.pth")
-        print(f"Saving model config to {saved_model_path}/graph_encoder_config.json")
-        with open(f"{saved_model_path}/graph_encoder_config.json", "w") as f:
-            json.dump(model_config, f)
+        torch.save(
+            {"model_state_dict": model.state_dict(), "config": config},
+            osp.join(save_dir, "graph_encoder.pth"),
+        )
+        torch.save({"confusion_matrix": confusion}, osp.join(save_dir, "confusion_matrix.pt"))
 
-    return test_roc_auc
+    return test_auc
 
 
-def train_with_tune(config, max_epochs, val_dataset):
-    """
-    Train function for Ray Tune, reporting ROC AUC.
-    """
-    if hasattr(val_dataset, "dataset"):
-        underlying = val_dataset.dataset
-    else:
-        underlying = val_dataset
-
-    in_channels = getattr(underlying, "num_features", underlying[0].x.size(1))
-    if hasattr(underlying, "num_classes"):
-        num_classes = underlying.num_classes
-    else:
-        labels = [data.y.item() for data in underlying]
-        num_classes = int(max(labels)) + 1
-
+def train_with_tune(config, max_epochs, train_dataset, val_dataset):
+    """Ray Tune training loop for a single hyper‑parameter trial."""
+    in_channels, num_classes = get_dataset_attributes(train_dataset)
     device = get_device()
+
     model = UPFDGraphSageNet(
-        in_channels=in_channels,
-        hidden_channels=config["hidden_channels"],
-        num_classes=num_classes,
-        dropout=config["dropout"]
+        in_channels,
+        config["hidden_channels"],
+        num_classes,
+        config["dropout"],
     ).to(device)
-    print(f"in_channels: {in_channels}, num_classes: {num_classes}")
 
-    val_loader = DataLoader(val_dataset, batch_size=config["batch_size"], shuffle=False)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=config["lr"], weight_decay=config["weight_decay"])
-    # Use focal loss for tuning as well.
-    criterion = FocalLoss(alpha=config["focal_alpha"], gamma=config["focal_gamma"], reduction="mean")
+    optimizer = torch.optim.AdamW(
+        model.parameters(), lr=config["lr"], weight_decay=config["weight_decay"]
+    )
+    criterion = FocalLoss(alpha=config["focal_alpha"], gamma=config["focal_gamma"])
 
-    for epoch in range(1, max_epochs + 1):
-        for data in val_loader:
-            data = data.to(device)
+    train_loader = DataLoader(train_dataset, batch_size=config["batch_size"])
+    val_loader = DataLoader(val_dataset, batch_size=config["batch_size"])
+
+    for _ in range(1, max_epochs + 1):
+        for batch in train_loader:
+            batch = batch.to(device)
             optimizer.zero_grad()
-            out, _, _ = model(data.x, data.edge_index, data.batch)
-            loss = criterion(out, data.y)
-            loss.backward()
-            optimizer.step()
-        val_roc_auc = evaluate_auc(model, val_loader, device)
-        tune.report({"val_roc_auc": val_roc_auc})
+            logits, *_ = model(batch.x, batch.edge_index, batch.batch)
+            loss = criterion(logits, batch.y)
+            if torch.isfinite(loss):
+                loss.backward()
+                optimizer.step()
+
+        val_auc = evaluate_auc(model, val_loader, device)
+        tune.report({"val_roc_auc": val_auc})
 
 
-def hyperparam_search(max_epochs: int, num_samples: int, local_dir: str, saved_config_path: str, val_dataset):
-    """
-    Defines the search space and runs Ray Tune with Focal Loss hyperparams.
-    """
+def hyperparam_search(max_epochs, n_samples, store, cfg_path, train_dataset, val_dataset):
+    """Run hyper‑parameter search with Ray Tune and save the best configuration."""
     search_space = {
-        "hidden_channels": tune.choice([64, 128, 256, 512, 728, 1024]),
-        "dropout": tune.uniform(0.0, 0.6),
-        "lr": tune.loguniform(1e-4, 9e-2),
+        "hidden_channels": tune.choice([64, 128, 256]),
+        "dropout": tune.uniform(0.0, 0.5),
+        "lr": tune.loguniform(1e-4, 5e-3),
         "weight_decay": tune.loguniform(1e-6, 1e-3),
-        "batch_size": tune.choice([64, 128, 256, 512]),
+        "batch_size": tune.choice([64, 128]),
         "focal_alpha": tune.uniform(0.1, 1.0),
-        "focal_gamma": tune.uniform(0.5, 5.0)
+        "focal_gamma": tune.uniform(0.5, 4.0),
     }
 
-    scheduler = ASHAScheduler(metric="val_roc_auc", mode="max", max_t=max_epochs, grace_period=5, reduction_factor=2)
-    storage_uri = "file://" + os.path.abspath(local_dir)
+    scheduler = ASHAScheduler(
+        metric="val_roc_auc", mode="max", max_t=max_epochs, grace_period=5
+    )
 
     analysis = tune.run(
-        tune.with_parameters(train_with_tune, max_epochs=max_epochs, val_dataset=val_dataset),
-        resources_per_trial={"cpu": 2, "gpu": 0},
+        tune.with_parameters(
+            train_with_tune,
+            max_epochs=max_epochs,
+            train_dataset=train_dataset,
+            val_dataset=val_dataset,
+        ),
         config=search_space,
-        num_samples=num_samples,
+        num_samples=n_samples,
         scheduler=scheduler,
-        storage_path=storage_uri,
-        verbose=1
+        storage_path="file://" + osp.abspath(store),
+        resources_per_trial={"cpu": 2, "gpu": 1},
     )
 
     best_config = analysis.get_best_config(metric="val_roc_auc", mode="max")
-    print("Best config found:", best_config)
-
-    # Retrieve dataset features + classes
-    if hasattr(val_dataset, "dataset"):
-        underlying = val_dataset.dataset
-    else:
-        underlying = val_dataset
-    in_channels = getattr(underlying, "num_features", underlying[0].x.size(1))
-    if hasattr(underlying, "num_classes"):
-        num_classes = underlying.num_classes
-    else:
-        labels = [data.y.item() for data in underlying]
-        num_classes = int(max(labels)) + 1
-
-    best_config["in_channels"] = in_channels
-    best_config["num_classes"] = num_classes
-
-    os.makedirs(os.path.dirname(saved_config_path), exist_ok=True)
-    with open(saved_config_path, "w") as f:
-        json.dump(best_config, f)
+    os.makedirs(osp.dirname(cfg_path), exist_ok=True)
+    with open(cfg_path, "w") as json_file:
+        json.dump(best_config, json_file)
 
     return best_config
 
@@ -330,98 +267,78 @@ app = typer.Typer()
 
 @app.command()
 def main(
-        dataset_root: str = typer.Option("../data/astroturf", help="Root folder for the dataset"),
-        tuning: bool = typer.Option(False, help="Whether to run hyperparameter tuning via Ray Tune"),
-        hidden_channels: int = typer.Option(64, help="Hidden channels (if not tuning)"),
-        dropout: float = typer.Option(0.3, help="Dropout rate (if not tuning)"),
-        lr: float = typer.Option(0.001, help="Learning rate (if not tuning)"),
-        weight_decay: float = typer.Option(5e-4, help="Weight decay (if not tuning)"),
-        batch_size: int = typer.Option(128, help="Batch size (if not tuning)"),
-        epochs: int = typer.Option(30, help="Number of epochs to train"),
-        patience: int = typer.Option(10, help="Patience for early stopping"),
-        tune_max_epochs: int = typer.Option(30, help="Max epochs for tuning"),
-        model_output_path: str = typer.Option("../models/graph/graph_encoder.pth", help="Where to save the model"),
-        downsample: bool = typer.Option(True, help="Whether to downsample the majority class in the training set")
+        dataset_root: str = typer.Option("../data/astroturf", "--dataset-root"),
+        tuning: bool = typer.Option(False, "--tuning"),
+        hidden_channels: int = typer.Option(64, "--hidden-channels"),
+        dropout: float = typer.Option(0.3, "--dropout"),
+        lr: float = typer.Option(1e-3, "--lr"),
+        weight_decay: float = typer.Option(5e-4, "--weight-decay"),
+        batch_size: int = typer.Option(128, "--batch-size"),
+        epochs: int = typer.Option(30, "--epochs"),
+        patience: int = typer.Option(10, "--patience"),
+        tune_max_epochs: int = typer.Option(30, "--tune-max-epochs"),
+        samples: int = typer.Option(10, "--samples"),
+        model_output: str = typer.Option("../models/graph_encoder/", "--model-output-path"),
+        downsample: bool = typer.Option(True, "--downsample"),
 ):
-    """
-    Main entry point for training or hyperparameter tuning the graph encoder.
+    """Entry‑point for training or hyper‑parameter tuning."""
+    root_dir = osp.abspath(osp.expanduser(dataset_root))
+    save_dir = osp.abspath(osp.expanduser(model_output))
 
-    If --tuning is used, Ray Tune hyperparameter search is performed.
-    Otherwise, a single training run is done with the specified hyperparams.
+    train_dataset = AstroturfCampaignGraphDataset(root_dir, "train", shuffle=True)
+    val_dataset = AstroturfCampaignGraphDataset(root_dir, "test")
+    test_dataset = AstroturfCampaignGraphDataset(root_dir, "test")
 
-    If --downsample is used, the majority class is reduced in size to match
-    the minority class in the training set.
-    """
-    # Load the raw datasets
-    train_dataset, val_dataset, test_dataset = load_astroturf_datasets(root=dataset_root)
-
-    # Optional downsampling
     if downsample:
-        train_dataset = downsample_majority_class(train_dataset, majority_label=0)
-
-    print("Dataset Loaded:")
-    print(f" - Train: {len(train_dataset)} samples")
-    graph_dataset_stats(train_dataset)
-    print(f" - Val: {len(val_dataset)} samples")
-    graph_dataset_stats(val_dataset)
-    print(f" - Test: {len(test_dataset)} samples")
-    graph_dataset_stats(test_dataset)
+        train_dataset = downsample_majority_class(train_dataset)
 
     if tuning:
-        model_dir = os.path.dirname(model_output_path)
-        os.makedirs(model_dir, exist_ok=True)
-        saved_config_path = os.path.join(model_dir, "best_config.json")
-        tensorboard_log_dir = f"./runs/{datetime.now().strftime('%Y%m%d-%H%M%S')}"
         ray.init(ignore_reinit_error=True)
-
         best_config = hyperparam_search(
-            max_epochs=tune_max_epochs,
-            num_samples=10,
-            local_dir="./ray_results",
-            saved_config_path=saved_config_path,
-            val_dataset=val_dataset
+            tune_max_epochs,
+            samples,
+            "./ray_results",
+            osp.join(save_dir, "best_config.json"),
+            train_dataset,
+            val_dataset,
         )
 
-        final_test_roc_auc = run_single_train(
-            train_dataset=train_dataset,
-            val_dataset=val_dataset,
-            test_dataset=test_dataset,
-            hidden_channels=best_config["hidden_channels"],
-            dropout=best_config["dropout"],
-            lr=best_config["lr"],
-            weight_decay=best_config["weight_decay"],
-            focal_alpha=best_config.get("focal_alpha", 1.0),
-            focal_gamma=best_config.get("focal_gamma", 2.0),
-            epochs=epochs,
-            batch_size=best_config["batch_size"],
-            save_model=True,
-            saved_model_path=model_output_path,
-            write_to_tensorboard=True,
-            tensorboard_log_dir=tensorboard_log_dir,
-            include_config=True,
-            patience=patience
+        auc = run_single_train(
+            train_dataset,
+            val_dataset,
+            test_dataset,
+            best_config["hidden_channels"],
+            best_config["dropout"],
+            best_config["lr"],
+            best_config["weight_decay"],
+            epochs,
+            best_config["batch_size"],
+            best_config["focal_alpha"],
+            best_config["focal_gamma"],
+            patience,
+            True,
+            save_dir,
         )
-        print(f"[TUNING] Final test ROC AUC with best config = {final_test_roc_auc:.4f}")
         ray.shutdown()
     else:
-        final_test_roc_auc = run_single_train(
-            train_dataset=train_dataset,
-            val_dataset=val_dataset,
-            test_dataset=test_dataset,
-            hidden_channels=hidden_channels,
-            dropout=dropout,
-            lr=lr,
-            weight_decay=weight_decay,
-            epochs=epochs,
-            batch_size=batch_size,
-            focal_alpha=1.0,  # Default focal alpha
-            focal_gamma=2.0,  # Default focal gamma
-            save_model=True,
-            saved_model_path=model_output_path,
-            include_config=True,  # Save JSON config along with .pth
-            patience=patience,
+        auc = run_single_train(
+            train_dataset,
+            val_dataset,
+            test_dataset,
+            hidden_channels,
+            dropout,
+            lr,
+            weight_decay,
+            epochs,
+            batch_size,
+            1.0,
+            2.0,
+            patience,
+            True,
+            save_dir,
         )
-        print(f"[NO-TUNING] Final test ROC AUC = {final_test_roc_auc:.4f}")
+
+    print(f"\nFinal Test ROC‑AUC: {auc:.4f}")
 
 
 if __name__ == "__main__":

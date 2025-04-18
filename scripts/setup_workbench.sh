@@ -12,8 +12,8 @@ pip install -r requirements.txt
 # Create a data directory
 mkdir ~/data
 
-# Copy the data from GCS bucket
-gsutil -m cp -r gs://swarm-guard-dataset/* ~/data/
+# Copy the data from GCS bucket, preserving directory structure
+gsutil -m rsync -r gs://swarm_guard_dataset/ ~/data/
 
 # Create a models directory
 mkdir -p ~/models

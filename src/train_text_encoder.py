@@ -25,8 +25,6 @@ from src.helpers.early_stopping import EarlyStopping
 def get_device():
     if torch.cuda.is_available():
         return torch.device("cuda")
-    elif torch.backends.mps.is_available() and torch.backends.mps.is_built():
-        return torch.device("mps")
     else:
         return torch.device("cpu")
 
@@ -66,7 +64,7 @@ def run_single_train(
 
     model = AutoModelForSequenceClassification.from_pretrained(model_id, num_labels=2).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
-    early_stopping = EarlyStopping(patience=patience, verbose=True)
+    early_stopping = EarlyStopping(patience=patience, verbose=True, mode='max')
 
     writer = None
     if write_tb:
@@ -94,7 +92,7 @@ def run_single_train(
             writer.add_scalar("Val/ROC_AUC", val_auc, epoch)
 
         # Early stopping on ROC AUC (maximize)
-        early_stopping(-val_auc, model)
+        early_stopping(val_auc, model)
         if early_stopping.early_stop:
             print("🏁 Early stopping")
             break
@@ -157,7 +155,7 @@ def hyperparam_search(model_id, train_ds, val_ds, num_samples: int, max_epochs: 
         config=space,
         num_samples=num_samples,
         scheduler=sched,
-        resources_per_trial={"cpu": 1, "gpu": 0},
+        resources_per_trial={"cpu": 1, "gpu": 1},
         name="text_search"
     )
     best = analysis.get_best_config("val_roc_auc", "max")
@@ -185,7 +183,7 @@ def main(
         tune_epochs: int = typer.Option(3),
         output_dir: str = typer.Option("./text_model"),
 ):
-    full_train = AstroturfTextDataset(os.path.join(dataset_root, "train"), model_id)
+    full_train = AstroturfTextDataset(os.path.join(dataset_root, "train", "graphs"), model_id)
     idxs = list(range(len(full_train)))
     labels = full_train.labels()
     train_idx, val_idx = train_test_split(
@@ -193,7 +191,7 @@ def main(
     )
     train_ds = Subset(full_train, train_idx)
     val_ds = Subset(full_train, val_idx)
-    test_ds = AstroturfTextDataset(os.path.join(dataset_root, "test"), model_id)
+    test_ds = AstroturfTextDataset(os.path.join(dataset_root, "test", "graphs"), model_id)
 
     print(f"Train/Val/Test sizes: {len(train_ds)}/{len(val_ds)}/{len(test_ds)}")
 

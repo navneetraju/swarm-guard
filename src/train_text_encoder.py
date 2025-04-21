@@ -33,7 +33,6 @@ def get_device():
 
 @torch.no_grad()
 def evaluate_auc(model, loader, device):
-    """Compute area under the Precision–Recall curve (Average Precision)."""
     model.eval()
     ys, ps = [], []
     for batch in loader:

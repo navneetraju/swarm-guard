@@ -291,3 +291,6 @@ ray_results/
 # Notebooks
 notebooks/preprocess_pipeline.ipynb
 notebooks/eda.ipynb
+
+# dataset
+dataset

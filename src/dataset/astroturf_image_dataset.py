@@ -9,19 +9,24 @@ from transformers import AutoImageProcessor
 
 
 class AstroturfImageDataset(IterableDataset):
-    def __init__(self,root: str,model_id: str,split: str = "train",transform=None,shuffle: bool = False,cache_processor: bool = True,):
+    def __init__(self,root: str,model_id: str,split: str = "train",transform=None,shuffle: bool = False,cache_processor: bool = True,max_samples: Optional[int] = None):
         self.root = os.path.abspath(os.path.expanduser(root))
         self.model_id = model_id
         self.split = split
         self.transform = transform
         self.shuffle = shuffle
+        self.max_samples = max_samples
+
         self.image_dir = os.path.join(self.root, self.split, "images")
         if not os.path.isdir(self.image_dir):
             raise FileNotFoundError(f"Image directory not found: {self.image_dir}")
 
         self._file_list = [f for f in os.listdir(self.image_dir) if f.lower().endswith(".jpg")]
+        
         if self.shuffle:
             random.shuffle(self._file_list)
+        if self.max_samples is not None:
+            self._file_list = self._file_list[:self.max_samples]
 
         self._processor = AutoImageProcessor.from_pretrained(model_id) if cache_processor else None
 

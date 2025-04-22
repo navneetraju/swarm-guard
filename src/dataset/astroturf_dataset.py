@@ -227,11 +227,13 @@ def astrorag_collate_fn(batch):
     text_input_ids = torch.stack([d['text_input_ids'] for d in data_dicts])
     text_attention_mask = torch.stack([d['text_attention_mask'] for d in data_dicts])
     graphs = Batch.from_data_list([d['graph_data'] for d in data_dicts])
+    pixel_values = torch.stack([d['pixel_values'] for d in data_dicts])
     labels = torch.tensor(labels, dtype=torch.long)
 
     return {
         'text_input_ids': text_input_ids,
         'text_attention_mask': text_attention_mask,
         'graph_data': graphs,
+        'pixel_values': pixel_values,
         'labels': labels
     }

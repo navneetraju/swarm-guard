@@ -112,8 +112,9 @@ def train_function(
             graph_data.edge_index = graph_data.edge_index.to(device)
             graph_data.batch = graph_data.batch.to(device)
             labels = batch["labels"].to(device)
+            pixel_values = batch["pixel_values"].to(device)
             optimizer.zero_grad()
-            output = model(text_input_ids, text_attention_mask, graph_data)
+            output = model(text_input_ids, text_attention_mask, graph_data, pixel_values)
             loss = criterion(output, labels)
             loss.backward()
             optimizer.step()
@@ -214,7 +215,7 @@ def main(
     abs_storage_path = Path(search_results_output_file_path).absolute().as_uri()
     analysis = tune.run(
         trainable,
-        resources_per_trial={"cpu": 8, "gpu": 1},
+        resources_per_trial={"cpu": 8, "gpu": 0},
         config=search_space,
         num_samples=10,
         storage_path=abs_storage_path,

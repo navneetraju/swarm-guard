@@ -222,6 +222,7 @@ def main(
         name="multi_modal_search",
         scheduler=scheduler,
         stop={"training_iteration": max_epochs},
+        raise_on_failed_trial=False
     )
     best_trial = analysis.get_best_trial("pr_auc", "max", "last")
     print(f"Best trial config: {best_trial.config}")

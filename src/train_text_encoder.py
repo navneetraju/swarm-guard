@@ -1,9 +1,8 @@
+import torch
 import json
 import os
-from datetime import datetime
-
 import ray
-import torch
+from datetime import datetime
 import typer
 from ray import tune
 from ray.tune.schedulers import ASHAScheduler
@@ -17,10 +16,10 @@ from transformers import (
     AutoModelForSequenceClassification,
     DataCollatorWithPadding
 )
-from src.modules.loss.focal_loss import FocalLoss
+from modules.loss.focal_loss import FocalLoss
 
-from src.dataset.astroturf_text_dataset import AstroturfTextDataset
-from src.helpers.early_stopping import EarlyStopping
+from dataset.astroturf_text_dataset import AstroturfTextDataset
+from helpers.early_stopping import EarlyStopping
 
 
 def get_device():
@@ -30,6 +29,7 @@ def get_device():
         return torch.device("mps")
     else:
         return torch.device("cpu")
+
 
 @torch.no_grad()
 def evaluate_auc(model, loader, device):
@@ -42,9 +42,12 @@ def evaluate_auc(model, loader, device):
         ys.extend(batch['labels'].cpu().numpy())
         ps.extend(prob)
     try:
-        return average_precision_score(ys, ps)
+        pr_auc = average_precision_score(ys, ps)
+        roc_auc = roc_auc_score(ys, ps)
     except ValueError:
-        return 0.0
+        pr_auc, roc_auc = 0.0, 0.0
+    return pr_auc, roc_auc
+
 
 def run_single_train(
         train_ds, val_ds, test_ds,
@@ -68,7 +71,7 @@ def run_single_train(
 
     model = AutoModelForSequenceClassification.from_pretrained(model_id, num_labels=2).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
-    early_stopping = EarlyStopping(patience=patience, verbose=True, mode='max')
+    early_stopping = EarlyStopping(patience=patience, verbose=True)
     loss_fn = FocalLoss(alpha=alpha, gamma=gamma)
 
     writer = None
@@ -76,6 +79,7 @@ def run_single_train(
         tb_dir = f"./runs/text/{datetime.now():%Y%m%d-%H%M%S}"
         writer = SummaryWriter(log_dir=tb_dir)
 
+    best_val_score = -float('inf')
     for epoch in range(1, epochs + 1):
         model.train()
         total_loss = 0.0
@@ -89,38 +93,51 @@ def run_single_train(
             total_loss += loss.item()
         avg_loss = total_loss / len(train_loader)
 
-        val_auc = evaluate_auc(model, val_loader, device)
-        print(f"Epoch {epoch}: Train Loss={avg_loss:.4f}, Val PR AUC={val_auc:.4f}")
+        pr_val, roc_val = evaluate_auc(model, val_loader, device)
+        print(f"Epoch {epoch}: Train Loss={avg_loss:.4f}, Val PR AUC={pr_val:.4f}, Val ROC AUC={roc_val:.4f}")
 
         if writer:
             writer.add_scalar("Train/Loss", avg_loss, epoch)
-            writer.add_scalar("Val/PR_AUC", val_auc, epoch)
+            writer.add_scalar("Val/PR_AUC", pr_val, epoch)
+            writer.add_scalar("Val/ROC_AUC", roc_val, epoch)
 
-        early_stopping(-val_auc, model)
+        if pr_val > best_val_score:
+            best_val_score = pr_val
+            if save_model:
+                os.makedirs(model_out, exist_ok=True)
+                model.save_pretrained(model_out)
+                AutoTokenizer.from_pretrained(model_id).save_pretrained(model_out)
+
+        early_stopping(-pr_val, model)
         if early_stopping.early_stop:
             print("🏁 Early stopping")
             break
 
-        if save_model:
-            os.makedirs(model_out, exist_ok=True)
-            model.save_pretrained(model_out)
-            AutoTokenizer.from_pretrained(model_id).save_pretrained(model_out)
-
-    test_auc = evaluate_auc(model, test_loader, device)
-    print(f"Test PR AUC: {test_auc:.4f}")
+    pr_test, roc_test = evaluate_auc(model, test_loader, device)
+    print(f"Test PR AUC: {pr_test:.4f}, Test ROC AUC: {roc_test:.4f}")
 
     preds, labels = [], []
     model.eval()
-    for batch in tqdm(test_loader, desc="Final Classification Report"):
+    for batch in tqdm(test_loader, desc="Generating Classification Report"):
         batch = {k: v.to(device) for k, v in batch.items()}
         logits = model(**batch).logits.argmax(dim=-1).cpu().numpy()
         preds.extend(logits)
         labels.extend(batch['labels'].cpu().numpy())
 
-    print(classification_report(labels, preds, target_names=["Real", "Fake"]))
+    report_str = classification_report(labels, preds, target_names=["Real", "Fake"])
+    print(report_str)
+
+    os.makedirs(model_out, exist_ok=True)
+    report_path = os.path.join(model_out, "classification_report.txt")
+    with open(report_path, "w") as f:
+        f.write(report_str)
+        f.write(f"Test PR AUC: {pr_test:.4f}, Test ROC AUC: {roc_test:.4f}")
+    print(f"Classification report saved to {report_path}")
+
     if writer:
         writer.close()
-    return test_auc
+    return pr_test, roc_test
+
 
 
 def train_fn_tune(config, model_id, train_ds, val_ds, epochs: int = 5):
@@ -143,8 +160,8 @@ def train_fn_tune(config, model_id, train_ds, val_ds, epochs: int = 5):
             loss.backward()
             optimizer.step()
 
-    auc = evaluate_auc(model, val_loader, device)
-    tune.report(val_roc_auc=auc)
+    pr_val, roc_val = evaluate_auc(model, val_loader, device)
+    tune.report(val_pr_auc=pr_val, val_roc_auc=roc_val)
 
 
 def hyperparam_search(model_id, train_ds, val_ds, num_samples: int, max_epochs: int, out_cfg: str):
@@ -161,7 +178,7 @@ def hyperparam_search(model_id, train_ds, val_ds, num_samples: int, max_epochs: 
         config=space,
         num_samples=num_samples,
         scheduler=sched,
-        resources_per_trial={"cpu": 1, "gpu": 1},,
+        resources_per_trial={"cpu": 4, "gpu": 1},
         name="text_search"
     )
     best = analysis.get_best_config("val_roc_auc", "max")
@@ -171,13 +188,12 @@ def hyperparam_search(model_id, train_ds, val_ds, num_samples: int, max_epochs: 
         json.dump(best, f)
     return best
 
-
 app = typer.Typer()
 
 
 @app.command()
 def main(
-        dataset_root: str = typer.Option("../data/astroturf", help="Root folder with train/ and test/ subfolders"),
+        dataset_root: str = typer.Option("../data/astroturf", help="Root folder with train/ and test/ subfolders")
         model_id: str = typer.Option("answerdotai/ModernBERT-base", help="HF model ID"),
         tuning: bool = typer.Option(False, help="Run hyperparam tuning?"),
         lr: float = typer.Option(1e-4),
@@ -191,7 +207,7 @@ def main(
         gamma: float = typer.Option(2.0, help="Focal loss gamma"),
         output_dir: str = typer.Option("./text_model"),
 ):
-    full_train = AstroturfTextDataset(os.path.join(dataset_root, "train", "graphs"), model_id)
+    full_train = AstroturfTextDataset(os.path.join(dataset_root, "train"), model_id)
     idxs = list(range(len(full_train)))
     labels = full_train.labels()
     train_idx, val_idx = train_test_split(
@@ -207,7 +223,7 @@ def main(
         ray.init(ignore_reinit_error=True)
         cfg_path = os.path.join(output_dir, "best_text_config.json")
         best_cfg = hyperparam_search(model_id, train_ds, val_ds, tune_samples, tune_epochs, cfg_path)
-        final_auc = run_single_train(
+        final_pr, final_roc = run_single_train(
             train_ds, val_ds, test_ds,
             model_id=model_id,
             lr=best_cfg["lr"],
@@ -221,10 +237,10 @@ def main(
             alpha=best_cfg["alpha"],
             gamma=best_cfg["gamma"],
         )
-        print(f"[TUNED] Test PR AUC: {final_auc:.4f}")
+        print(f"[TUNED] Test PR AUC: {final_pr:.4f}, Test ROC AUC: {final_roc:.4f}")
         ray.shutdown()
     else:
-        final_auc = run_single_train(
+        final_pr, final_roc = run_single_train(
             train_ds, val_ds, test_ds,
             model_id=model_id,
             lr=lr,
@@ -238,7 +254,7 @@ def main(
             alpha=alpha,
             gamma=gamma
         )
-        print(f"[NO TUNE] Test PR AUC: {final_auc:.4f}")
+        print(f"[NO TUNE] Test PR AUC: {final_pr:.4f}, Test ROC AUC: {final_roc:.4f}")
 
 
 if __name__ == "__main__":

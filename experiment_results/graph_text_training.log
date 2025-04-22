@@ -1,0 +1,9 @@
+Epoch 25/100, Train Loss: 0.0064, Val Loss: 0.0353, Val PR AUC: 0.7725
+EarlyStopping counter: 5 out of 5
+Early stopping
+Classification Report:
+{'0': {'precision': 0.9551472574979735, 'recall': 0.9901960784313726, 'f1-score': 0.9723559345344519, 'support': 3570.0}, '1': {'precision': 0.8708487084870848, 'recall': 0.5870646766169154, 'f1-score': 0.7013372956909361, 'support': 402.0}, 'accuracy': 0.9493957703927492, 'macro avg': {'precision': 0.9129979829925292, 'recall': 0.788630377524144, 'f1-score': 0.836846615112694, 'support': 3972.0}, 'weighted avg': {'precision': 0.9466155312385633, 'recall': 0.9493957703927492, 'f1-score': 0.9449265556786882, 'support': 3972.0}}
+
+PR AUC Score: 0.784359838279612
+Confusion Matrix: [[3535   35]
+ [ 166  236]]

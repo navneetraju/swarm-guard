@@ -9,3 +9,4 @@ ray[tune]~=2.44.0
 pillow~=11.1.0
 numpy~=2.0.2
 tqdm~=4.67.1
+torchmetrics~=1.7.1

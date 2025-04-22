@@ -8,8 +8,8 @@ import typer
 from ray import tune
 from ray.tune import Checkpoint, get_checkpoint
 from ray.tune.schedulers import ASHAScheduler
-from sklearn.metrics import average_precision_score, roc_auc_score
 from torch.utils.data import Dataset, Subset
+from torchmetrics import AveragePrecision, AUROC
 from tqdm import tqdm
 from transformers import AutoModel
 
@@ -95,13 +95,14 @@ def train_function(
             optimizer.load_state_dict(checkpoint_state["optimizer_state_dict"])
     else:
         start_epoch = 0
-
+    pr_metric = AveragePrecision(task="binary").to(device)
+    roc_metric = AUROC(task="binary").to(device)
     for epoch in range(start_epoch, max_epochs):
         model.train()
         loss_sum = 0.0
         loss_count = 0
-        all_true = []
-        all_probs = []
+        pr_metric.reset()
+        roc_metric.reset()
         for batch in tqdm(
                 data_loader, desc=f"Training Epoch {epoch + 1}/{max_epochs}"
         ):
@@ -122,14 +123,14 @@ def train_function(
             loss_count += 1
 
             probs = torch.softmax(output, dim=1)[:, 1]
-            all_probs.extend(probs.detach().cpu().tolist())
-            all_true.extend(labels.detach().cpu().tolist())
+            pr_metric.update(probs, labels)
+            roc_metric.update(probs, labels)
 
         avg_loss = loss_sum / loss_count if loss_count > 0 else 0
 
         try:
-            pr_auc = average_precision_score(all_true, all_probs)
-            roc_auc = roc_auc_score(all_true, all_probs)
+            pr_auc = pr_metric.compute().item()
+            roc_auc = roc_metric.compute().item()
         except ValueError:
             pr_auc = float("nan")
             roc_auc = float("nan")
@@ -222,6 +223,7 @@ def main(
         name="multi_modal_search",
         scheduler=scheduler,
         stop={"training_iteration": max_epochs},
+        raise_on_failed_trial=False
     )
     best_trial = analysis.get_best_trial("pr_auc", "max", "last")
     print(f"Best trial config: {best_trial.config}")

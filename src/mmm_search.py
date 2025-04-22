@@ -187,6 +187,7 @@ def main(
         model_path=graph_encoder_model_path,
         device="cuda" if torch.cuda.is_available() else "cpu",
     )
+    vision_encoder = AutoModel.from_pretrained(vision_encoder_model_id)
     dataset = load_data(
         dataset_root_dir=dataset_root_dir,
         search_sample_size=search_sample_size,
@@ -205,6 +206,7 @@ def main(
         device="cuda" if torch.cuda.is_available() else "cpu",
         text_encoder=text_encoder,
         graph_encoder=graph_encoder,
+        vision_encoder=vision_encoder,
         output_classes=output_classes,
         dataset=dataset,
         max_epochs=max_epochs,

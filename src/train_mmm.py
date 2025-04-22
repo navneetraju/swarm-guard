@@ -84,13 +84,14 @@ def train_function(
             text_input_ids = batch["text_input_ids"].to(device)
             text_attention_mask = batch["text_attention_mask"].to(device)
             graph_data = batch["graph_data"]
+            pixel_values = batch["pixel_values"].to(device)
             graph_data.x = graph_data.x.to(device)
             graph_data.edge_index = graph_data.edge_index.to(device)
             graph_data.batch = graph_data.batch.to(device)
             labels = batch["labels"].to(device)
 
             optimizer.zero_grad()
-            outputs = model(text_input_ids, text_attention_mask, graph_data)
+            outputs = model(text_input_ids, text_attention_mask, graph_data, pixel_values)
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()

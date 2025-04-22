@@ -16,10 +16,10 @@ from transformers import (
     AutoModelForSequenceClassification,
     DataCollatorWithPadding
 )
-from modules.loss.focal_loss import FocalLoss
+from src.modules.loss.focal_loss import FocalLoss
 
-from dataset.astroturf_text_dataset import AstroturfTextDataset
-from helpers.early_stopping import EarlyStopping
+from src.dataset.astroturf_text_dataset import AstroturfTextDataset
+from src.helpers.early_stopping import EarlyStopping
 
 
 def get_device():

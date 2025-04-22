@@ -153,7 +153,7 @@ def load_data(dataset_root_dir: str, search_sample_size: int, text_encoder_model
         json_dir=f"{dataset_root_dir}/train/graphs",
         image_dir=f"{dataset_root_dir}/train/images",
         text_model_id=text_encoder_model_id,
-        vision_model_id="google/vit-base-patch16-224",
+        vision_model_id=vision_encoder_model_id,
     )
     sample_size = min(search_sample_size, len(full_dataset))
     indices = random.sample(range(len(full_dataset)), sample_size)
@@ -215,7 +215,7 @@ def main(
     abs_storage_path = Path(search_results_output_file_path).absolute().as_uri()
     analysis = tune.run(
         trainable,
-        resources_per_trial={"cpu": 8, "gpu": 0},
+        resources_per_trial={"cpu": 8, "gpu": 1},
         config=search_space,
         num_samples=10,
         storage_path=abs_storage_path,

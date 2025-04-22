@@ -19,9 +19,12 @@ gsutil -m rsync -r gs://swarm_guard_dataset/ ~/data/
 mkdir -p ~/models
 
 # Mount the models bucket
-fusermount -u ~/models
+fusermount -u ~/models || true
+
 gcsfuse \
-  --stat-cache-ttl 0s \
-  --type-cache-ttl 0s \
-  --implicit-dirs \
+  --implicit-dirs \                     # allow “directory” semantics in a flat namespace
+  --file-mode 0777 \                    # make files world‑writable (adjust as needed) :contentReference[oaicite:0]{index=0}
+  --dir-mode 0777 \                     # same for directories :contentReference[oaicite:1]{index=1}
+  --metadata-cache-ttl-secs 0 \         # disable metadata caching so stat/type changes propagate immediately :contentReference[oaicite:2]{index=2}
+  --kernel-list-cache-ttl-secs 0 \      # disable directory‐listing cache for up‑to‑date listings :contentReference[oaicite:3]{index=3}
   swarm_guard_models ~/models

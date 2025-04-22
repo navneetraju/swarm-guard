@@ -2,13 +2,14 @@ import json
 import os
 
 import torch
+from PIL import Image
 from torch.utils.data import Dataset
 from torch_geometric.data import Data, Batch
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, AutoImageProcessor
 
 
 class AstroturfCampaignMultiModalDataset(Dataset):
-    def __init__(self, json_dir, model_id, max_length=280, use_all_node_text=False):
+    def __init__(self, json_dir, image_dir, text_model_id, vision_model_id, max_length=280, use_all_node_text=False):
         """
         Dataset for loading and processing the Astroturf Campaigns dataset.
 
@@ -19,12 +20,30 @@ class AstroturfCampaignMultiModalDataset(Dataset):
             use_all_node_text (bool): If True, use all node text for each graph.
         """
         self.json_dir = json_dir
-        self.text_tokenizer = AutoTokenizer.from_pretrained(model_id)
+        self.image_dir = image_dir
+        self.text_tokenizer = AutoTokenizer.from_pretrained(text_model_id)
+        self.vision_processor = AutoImageProcessor.from_pretrained(vision_model_id)
         self.max_length = max_length
         self.use_all_node_text = use_all_node_text
-
+        self.image_filenames = {}
         self.samples = []
+        self._read_image_directory()
         self._load_json_files()
+
+    def _read_image_directory(self):
+        """
+        Read image filenames from the directory and store them in a dictionary.
+        """
+        if not os.path.exists(self.image_dir):
+            raise ValueError(f"Image directory {self.image_dir} does not exist.")
+
+        for filename in os.listdir(self.image_dir):
+            # example path: swarm_guard_dataset/train/images/1234567890_1234567890.jpg
+            if filename.endswith('.jpg'):
+                # Extract the image ID from the filename
+                image_id = filename.split('.')[0]
+                # Store the image ID and its corresponding filename
+                self.image_filenames[image_id] = os.path.join(self.image_dir, filename)
 
     def _load_json_files(self):
         """
@@ -40,9 +59,13 @@ class AstroturfCampaignMultiModalDataset(Dataset):
                     data = json.load(f)
                     # Map "real" -> 0, "fake" -> 1 (same as the graph-only dataset)
                     label = 0 if data.get('label', 'real').lower() == 'real' else 1
-
+                    original_post = data['nodes'][0]
+                    image_file_name = f"{original_post.get('id')}_{original_post.get('user_id')}"
+                    if image_file_name not in self.image_filenames:
+                        continue
                     self.samples.append({
                         'file_path': file_path,
+                        'image_path': self.image_filenames[image_file_name],
                         'label': label,
                     })
 
@@ -170,18 +193,24 @@ class AstroturfCampaignMultiModalDataset(Dataset):
         sample = self.samples[idx]
         json_path = sample['file_path']
         label = sample['label']
-
+        image_path = sample['image_path']
         with open(json_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
 
         graph, text_data = self._process_graph(data, label)
         text_inputs = self._get_text_input(text_data)
-
+        image_processed = self._get_image_processed(image_path)
         return {
             'text_input_ids': text_inputs['input_ids'],
             'text_attention_mask': text_inputs['attention_mask'],
-            'graph_data': graph
+            'pixel_values': image_processed['pixel_values'].squeeze(0),
+            'graph_data': graph,
         }, label
+
+    def _get_image_processed(self, image_path):
+        image = Image.open(image_path).convert("RGB")
+        image_processed = self.vision_processor(images=image, return_tensors="pt")
+        return image_processed
 
 
 def astrorag_collate_fn(batch):

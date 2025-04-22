@@ -8,7 +8,7 @@ import typer
 from ray import tune
 from ray.tune import Checkpoint, get_checkpoint
 from ray.tune.schedulers import ASHAScheduler
-from sklearn.metrics import average_precision_score
+from sklearn.metrics import average_precision_score, roc_auc_score
 from torch.utils.data import Dataset, Subset
 from tqdm import tqdm
 from transformers import AutoModel
@@ -50,6 +50,7 @@ def train_function(
         device: str,
         text_encoder,
         graph_encoder,
+        vision_encoder,
         output_classes,
         dataset: Dataset,
         max_epochs: int = 10,
@@ -57,6 +58,7 @@ def train_function(
     model = MultiModalModelForClassification(
         text_encoder=text_encoder,
         graph_encoder=graph_encoder,
+        vision_encoder=vision_encoder,
         self_attention_heads=config["self_attention_heads"],
         embedding_dim=config["embedding_dim"],
         num_cross_modal_attention_blocks=config[
@@ -126,9 +128,10 @@ def train_function(
 
         try:
             pr_auc = average_precision_score(all_true, all_probs)
+            roc_auc = roc_auc_score(all_true, all_probs)
         except ValueError:
             pr_auc = float("nan")
-
+            roc_auc = float("nan")
         checkpoint_state = {
             "epoch": epoch + 1,
             "net_state_dict": model.state_dict(),
@@ -140,14 +143,16 @@ def train_function(
                 pickle.dump(checkpoint_state, fp)
             checkpoint = Checkpoint.from_directory(checkpoint_dir)
             tune.report(
-                {"loss": avg_loss, "pr_auc": pr_auc}, checkpoint=checkpoint
+                {"loss": avg_loss, "pr_auc": pr_auc, "roc_auc": roc_auc}, checkpoint=checkpoint
             )
 
 
-def load_data(dataset_root_dir: str, search_sample_size: int, text_encoder_model_id: str):
+def load_data(dataset_root_dir: str, search_sample_size: int, text_encoder_model_id: str, vision_encoder_model_id: str):
     full_dataset = AstroturfCampaignMultiModalDataset(
         json_dir=f"{dataset_root_dir}/train/graphs",
-        model_id=text_encoder_model_id,
+        image_dir=f"{dataset_root_dir}/train/images",
+        text_model_id=text_encoder_model_id,
+        vision_model_id="google/vit-base-patch16-224",
     )
     sample_size = min(search_sample_size, len(full_dataset))
     indices = random.sample(range(len(full_dataset)), sample_size)
@@ -168,6 +173,9 @@ def main(
         text_encoder_model_id: str = typer.Option(
             "answerdotai/ModernBERT-base", help="Pretrained model ID for text encoder."
         ),
+        vision_encoder_model_id: str = typer.Option(
+            "google/vit-base-patch16-224", help="Pretrained model ID for vision encoder."
+        ),
         graph_encoder_model_path: str = typer.Option(
             "path/to/graph_encoder.pth", help="Path to the pre-trained graph encoder."
         ),
@@ -183,6 +191,7 @@ def main(
         dataset_root_dir=dataset_root_dir,
         search_sample_size=search_sample_size,
         text_encoder_model_id=text_encoder_model_id,
+        vision_encoder_model_id=vision_encoder_model_id,
     )
     scheduler = ASHAScheduler(
         metric="pr_auc",
@@ -215,6 +224,7 @@ def main(
     print(f"Best trial config: {best_trial.config}")
     print(f"Best trial final validation loss: {best_trial.last_result['loss']}")
     print(f"Best trial final PR AUC: {best_trial.last_result['pr_auc']}")
+    print(f"Best trial final ROC AUC: {best_trial.last_result['roc_auc']}")
     output_file = Path(search_results_output_file_path) / "analysis.pkl"
     with open(output_file, "wb") as f:
         pickle.dump(analysis, f)

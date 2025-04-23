@@ -84,10 +84,12 @@ class MultiModalModelForClassification(nn.Module):
 
         ############ OUTPUT LAYER ############
 
-        # Gated Fusion
-        self.gate_fc = nn.Linear(embedding_dim * 3, 3)
-        self.post_fusion_norm = nn.LayerNorm(embedding_dim)
-        self.classifier = nn.Linear(embedding_dim, output_channels)
+        # Attention based fusion
+        self.attention_fusion = nn.MultiheadAttention(embed_dim=embedding_dim * 3,
+                                                      num_heads=1,
+                                                      batch_first=True)
+        self.post_fusion_norm = nn.LayerNorm(embedding_dim * 3)
+        self.classifier = nn.Linear(embedding_dim * 3, output_channels)
 
     def forward(self, text_input_ids, text_attention_mask, graph_data, pixel_values):
         text_embedding = self.text_encoder(input_ids=text_input_ids, attention_mask=text_attention_mask)[0]
@@ -141,13 +143,14 @@ class MultiModalModelForClassification(nn.Module):
         global_text_embedding = torch.mean(projected_text_embedding, dim=1)
         global_graph_embedding = torch.mean(projected_graph_embedding, dim=1)
         global_vision_embedding = torch.mean(projected_vision_embedding, dim=1)
-        gated_out = self.gate_fc(
-            torch.cat((global_text_embedding, global_graph_embedding, global_vision_embedding), dim=-1))
-        gates = F.softmax(gated_out, dim=-1)
-        alpha, beta, gamma = gates[:, 0:1], gates[:, 1:2], gates[:, 2:3]
-        fused_embedding = (alpha * global_text_embedding) + (beta * global_graph_embedding) + (
-                gamma * global_vision_embedding)
-        fused_embedding = self.post_fusion_norm(fused_embedding)
 
+        # Concatenate the global embeddings
+        global_embedding = torch.cat((global_text_embedding, global_graph_embedding, global_vision_embedding), dim=1)
+
+        # Apply attention-based fusion
+        attention_out, _ = self.attention_fusion(global_embedding.unsqueeze(1), global_embedding.unsqueeze(1),
+                                                 global_embedding.unsqueeze(1))
+        fused_embedding = torch.mean(attention_out, dim=1)
+        fused_embedding = self.post_fusion_norm(fused_embedding + global_embedding)
         logits = self.classifier(fused_embedding)
         return logits

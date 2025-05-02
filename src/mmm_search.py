@@ -42,6 +42,7 @@ search_space = {
     "weight_decay": tune.loguniform(1e-5, 1e-2),
     "alpha": tune.uniform(0.0, 1.0),
     "gamma": tune.uniform(0.0, 5.0),
+    "num_fusion_heads": tune.choice([1, 2, 4, 8, 16, 32]),
 }
 
 
@@ -72,6 +73,7 @@ def train_function(
             "num_cross_modal_attention_ff_dim"
         ],
         output_channels=output_classes,
+        num_fusion_heads=config["num_fusion_heads"],
     )
     move_to_device(model)
     data_loader = torch.utils.data.DataLoader(

@@ -17,7 +17,8 @@ class MultiModalModelForClassification(nn.Module):
                  num_cross_modal_attention_heads: int,
                  self_attn_ff_dim: int,
                  num_cross_modal_attention_ff_dim: int,
-                 output_channels: int):
+                 output_channels: int,
+                 num_fusion_heads: int = 1):
         super().__init__()
 
         # Use the provided encoders and freeze them for PEFT.
@@ -86,7 +87,7 @@ class MultiModalModelForClassification(nn.Module):
 
         # Attention based fusion
         self.attention_fusion = nn.MultiheadAttention(embed_dim=embedding_dim * 3,
-                                                      num_heads=1,
+                                                      num_heads=num_fusion_heads,
                                                       batch_first=True)
         self.post_fusion_norm = nn.LayerNorm(embedding_dim * 3)
         self.classifier = nn.Linear(embedding_dim * 3, output_channels)

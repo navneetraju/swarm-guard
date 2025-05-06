@@ -7,7 +7,7 @@ import torch
 import typer
 from ray import tune
 from ray.tune.schedulers import ASHAScheduler
-from sklearn.metrics import classification_report, roc_auc_score, average_precision_score
+from sklearn.metrics import classification_report, average_precision_score
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, Subset
 from torch.utils.tensorboard import SummaryWriter
@@ -17,8 +17,8 @@ from transformers import (
     AutoModelForSequenceClassification,
     DataCollatorWithPadding
 )
-from src.modules.loss.focal_loss import FocalLoss
 
+from src.modules.loss.focal_loss import FocalLoss
 from src.dataset.astroturf_text_dataset import AstroturfTextDataset
 from src.helpers.early_stopping import EarlyStopping
 
@@ -32,23 +32,8 @@ def get_device():
         return torch.device("cpu")
 
 
-# @torch.no_grad()
-# def evaluate_auc(model, loader, device):
-#     model.eval()
-#     ys, ps = [], []
-#     for batch in loader:
-#         batch = {k: v.to(device) for k, v in batch.items()}
-#         logits = model(**batch).logits
-#         prob = torch.softmax(logits, dim=-1)[:, 1].cpu().numpy()
-#         ys.extend(batch['labels'].cpu().numpy())
-#         ps.extend(prob)
-#     try:
-#         return roc_auc_score(ys, ps)
-#     except ValueError:
-#         return 0.0
 @torch.no_grad()
 def evaluate_auc(model, loader, device):
-    """Compute area under the Precision–Recall curve (Average Precision)."""
     model.eval()
     ys, ps = [], []
     for batch in loader:
@@ -62,19 +47,19 @@ def evaluate_auc(model, loader, device):
     except ValueError:
         return 0.0
 
-def run_single_train(
-        train_ds, val_ds, test_ds,
-        model_id: str,
-        lr: float, weight_decay: float,
-        epochs: int, batch_size: int,
-        patience: int,
-        save_model: bool,
-        model_out: str,
-        write_tb: bool,
-        alpha: float,
-        gamma: float
-):
 
+def run_single_train(
+    train_ds, val_ds, test_ds,
+    model_id: str,
+    lr: float, weight_decay: float,
+    epochs: int, batch_size: int,
+    patience: int,
+    save_model: bool,
+    model_out: str,
+    write_tb: bool,
+    alpha: float,
+    gamma: float
+):
     device = get_device()
     collator = DataCollatorWithPadding(tokenizer=AutoTokenizer.from_pretrained(model_id))
 
@@ -85,7 +70,7 @@ def run_single_train(
     model = AutoModelForSequenceClassification.from_pretrained(model_id, num_labels=2).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
     early_stopping = EarlyStopping(patience=patience, verbose=True)
-    loss_fn = FocalLoss(alpha=alpha, gamma=gamma) # focal loss
+    loss_fn = FocalLoss(alpha=alpha, gamma=gamma)
 
     writer = None
     if write_tb:
@@ -97,10 +82,8 @@ def run_single_train(
         total_loss = 0.0
         for batch in tqdm(train_loader, desc=f"Training Epoch {epoch}/{epochs}"):
             batch = {k: v.to(device) for k, v in batch.items()}
-            # out = model(**batch)
-            # loss = out.loss
-            logits = model(**batch).logits#FC
-            loss = loss_fn(logits, batch["labels"])#FC
+            logits = model(**batch).logits
+            loss = loss_fn(logits, batch["labels"])
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -108,29 +91,23 @@ def run_single_train(
         avg_loss = total_loss / len(train_loader)
 
         val_auc = evaluate_auc(model, val_loader, device)
-        # print(f"Epoch {epoch}: Train Loss={avg_loss:.4f}, Val ROC AUC={val_auc:.4f}")
         print(f"Epoch {epoch}: Train Loss={avg_loss:.4f}, Val PR AUC={val_auc:.4f}")
 
         if writer:
             writer.add_scalar("Train/Loss", avg_loss, epoch)
-            # writer.add_scalar("Val/ROC_AUC", val_auc, epoch)
             writer.add_scalar("Val/PR_AUC", val_auc, epoch)
 
-        # Early stopping on ROC AUC (maximize)
         early_stopping(-val_auc, model)
         if early_stopping.early_stop:
             print("🏁 Early stopping")
             break
 
-        # Save best model
         if save_model:
             os.makedirs(model_out, exist_ok=True)
             model.save_pretrained(model_out)
             AutoTokenizer.from_pretrained(model_id).save_pretrained(model_out)
 
-    # Final test
     test_auc = evaluate_auc(model, test_loader, device)
-    # print(f"Test ROC AUC: {test_auc:.4f}")
     print(f"Test PR AUC: {test_auc:.4f}")
 
     preds, labels = [], []
@@ -147,10 +124,8 @@ def run_single_train(
     return test_auc
 
 
-
-
 def train_fn_tune(config, model_id, train_ds, val_ds, epochs: int = 5):
-    loss_fn = FocalLoss(alpha=config["alpha"], gamma=config["gamma"])#FC
+    loss_fn = FocalLoss(alpha=config["alpha"], gamma=config["gamma"])
     device = get_device()
     collator = DataCollatorWithPadding(tokenizer=AutoTokenizer.from_pretrained(model_id))
     train_loader = DataLoader(train_ds, batch_size=config["batch_size"], shuffle=True, collate_fn=collator)
@@ -163,9 +138,8 @@ def train_fn_tune(config, model_id, train_ds, val_ds, epochs: int = 5):
         model.train()
         for batch in train_loader:
             batch = {k: v.to(device) for k, v in batch.items()}
-            # loss = model(**batch).loss
-            logits = model(**batch).logits#FC
-            loss = loss_fn(logits, batch["labels"])#FC
+            logits = model(**batch).logits
+            loss = loss_fn(logits, batch["labels"])
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -201,25 +175,29 @@ def hyperparam_search(model_id, train_ds, val_ds, num_samples: int, max_epochs: 
 
 app = typer.Typer()
 
-
 @app.command()
 def main(
-        dataset_root: str = typer.Option("../data/astroturf", help="Root folder with train/ and test/ subfolders"),
-        model_id: str = typer.Option("answerdotai/ModernBERT-base", help="HF model ID"),
-        tuning: bool = typer.Option(False, help="Run hyperparam tuning?"),
-        lr: float = typer.Option(1e-4),
-        weight_decay: float = typer.Option(1e-5),
-        epochs: int = typer.Option(5),
-        batch_size: int = typer.Option(32),
-        patience: int = typer.Option(3),
-        tune_samples: int = typer.Option(5),
-        tune_epochs: int = typer.Option(3),
-        alpha: float = typer.Option(1.0, help="Focal loss alpha"),
-        gamma: float = typer.Option(2.0, help="Focal loss gamma"),
-        output_dir: str = typer.Option("./text_model"),
+    dataset_root: str = typer.Option("../dataset", help="Root folder with train/ and test/ subfolders"),
+    model_id: str = typer.Option("answerdotai/ModernBERT-base", help="HF model ID"),
+    tuning: bool = typer.Option(False, help="Run hyperparam tuning?"),
+    lr: float = typer.Option(1e-4),
+    weight_decay: float = typer.Option(1e-5),
+    epochs: int = typer.Option(5),
+    batch_size: int = typer.Option(32),
+    patience: int = typer.Option(3),
+    tune_samples: int = typer.Option(5),
+    tune_epochs: int = typer.Option(3),
+    alpha: float = typer.Option(1.0, help="Focal loss alpha"),
+    gamma: float = typer.Option(2.0, help="Focal loss gamma"),
+    output_dir: str = typer.Option("./text_model")
 ):
-    #full_train = AstroturfTextDataset(os.path.join(dataset_root, "train"), model_id)
-    full_train = AstroturfTextDataset(os.path.join(dataset_root, "train", "graphs"), model_id)
+    train_path = os.path.join(dataset_root, "train", "graphs")
+    test_path = os.path.join(dataset_root, "test", "graphs")
+
+    assert os.path.exists(train_path), f"Missing train path: {train_path}"
+    assert os.path.exists(test_path), f"Missing test path: {test_path}"
+
+    full_train = AstroturfTextDataset(train_path, model_id)
     idxs = list(range(len(full_train)))
     labels = full_train.labels()
     train_idx, val_idx = train_test_split(
@@ -227,7 +205,7 @@ def main(
     )
     train_ds = Subset(full_train, train_idx)
     val_ds = Subset(full_train, val_idx)
-    test_ds = AstroturfTextDataset(os.path.join(dataset_root, "test"), model_id)
+    test_ds = AstroturfTextDataset(test_path, model_id)
 
     print(f"Train/Val/Test sizes: {len(train_ds)}/{len(val_ds)}/{len(test_ds)}")
 
@@ -266,14 +244,10 @@ def main(
             alpha=alpha,
             gamma=gamma
         )
-        # print(f"[NO TUNE] Test ROC AUC: {final_auc:.4f}")
         print(f"[NO TUNE] Test PR AUC: {final_auc:.4f}")
-
 
 if __name__ == "__main__":
     app()
-# conda activate swarm_guard
-#home/root/data
 
 """
 import torch

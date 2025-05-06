@@ -14,7 +14,7 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 from transformers import (
     AutoImageProcessor,
-    ViTForImageClassification
+    AutoModelForImageClassification
 )
 
 from modules.loss.focal_loss import FocalLoss
@@ -70,7 +70,7 @@ def run_single_train(
     val_loader = DataLoader(val_ds, batch_size=batch_size, shuffle=False, collate_fn=collate_fn)
     test_loader = DataLoader(test_ds, batch_size=batch_size, shuffle=False, collate_fn=collate_fn)
 
-    model = ViTForImageClassification.from_pretrained(
+    model = AutoModelForImageClassification.from_pretrained(
         model_id,
         num_labels=2,
         ignore_mismatched_sizes=True
@@ -148,7 +148,7 @@ def train_fn_tune(config, model_id, train_ds, val_ds, epochs: int = 5):
     train_loader = DataLoader(train_ds, batch_size=config["batch_size"], shuffle=True, collate_fn=collate_fn)
     val_loader = DataLoader(val_ds, batch_size=config["batch_size"], shuffle=False, collate_fn=collate_fn)
 
-    model = ViTForImageClassification.from_pretrained(
+    model = AutoModelForImageClassification.from_pretrained(
         model_id,
         num_labels=2,
         ignore_mismatched_sizes=True

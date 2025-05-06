@@ -17,6 +17,7 @@ from transformers import (
     ViTForImageClassification
 )
 
+from modules.loss.focal_loss import FocalLoss
 from dataset.astroturf_vision_dataset import AstroImageDataset
 from helpers.early_stopping import EarlyStopping
 
@@ -54,7 +55,9 @@ def run_single_train(
         patience: int,
         save_model: bool,
         model_out: str,
-        write_tb: bool
+        write_tb: bool,
+        alpha: float,
+        gamma: float
 ):
     device = get_device()
 
@@ -75,6 +78,7 @@ def run_single_train(
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
     early_stopping = EarlyStopping(patience=patience, verbose=True, mode='max')
+    loss_fn = FocalLoss(alpha=alpha, gamma=gamma) 
 
     writer = SummaryWriter(log_dir=f"./runs/vision/{datetime.now():%Y%m%d-%H%M%S}") if write_tb else None
     best_val_auc = -float('inf')
@@ -85,8 +89,9 @@ def run_single_train(
             pixel_values = batch["pixel_values"].to(device)
             labels = batch["labels"].to(device)
 
-            outputs = model(pixel_values=pixel_values, labels=labels)
-            loss = outputs.loss
+            outputs = model(pixel_values=pixel_values)
+            logits = outputs.logits
+            loss = loss_fn(logits, labels)
 
             optimizer.zero_grad()
             loss.backward()
@@ -132,6 +137,7 @@ def run_single_train(
 
 
 def train_fn_tune(config, model_id, train_ds, val_ds, epochs: int = 5):
+    loss_fn = FocalLoss(alpha=config["alpha"], gamma=config["gamma"]) 
     device = get_device()
 
     def collate_fn(batch):
@@ -156,7 +162,10 @@ def train_fn_tune(config, model_id, train_ds, val_ds, epochs: int = 5):
             pixel_values = batch["pixel_values"].to(device)
             labels = batch["labels"].to(device)
 
-            loss = model(pixel_values=pixel_values, labels=labels).loss
+            outputs = model(pixel_values=pixel_values)
+            logits = outputs.logits
+            loss = loss_fn(logits, labels)
+
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -171,6 +180,8 @@ def hyperparam_search(model_id, train_ds, val_ds, num_samples: int, max_epochs: 
         "lr": tune.loguniform(1e-5, 1e-3),
         "weight_decay": tune.loguniform(1e-6, 1e-2),
         "batch_size": tune.choice([16, 32, 64]),
+        "alpha": tune.uniform(0.1, 2.0),
+        "gamma": tune.uniform(0.0, 5.0)
     }
     sched = ASHAScheduler(metric="val_roc_auc", mode="max", max_t=max_epochs, grace_period=1)
     analysis = tune.run(
@@ -204,34 +215,29 @@ def main(
     patience: int = typer.Option(3),
     tune_samples: int = typer.Option(5),
     tune_epochs: int = typer.Option(3),
+    alpha: float = typer.Option(1.0, help="Focal loss alpha"),
+    gamma: float = typer.Option(2.0, help="Focal loss gamma"),
     output_dir: str = typer.Option("./vision_model", help="Output directory for the model"),
 ):
-    # Get the absolute path to the directory containing this script
     script_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.abspath(os.path.join(script_dir, ".."))
-
-    # Then build paths relative to project root
     dataset_root = os.path.abspath(os.path.join(project_root, "dataset"))
     train_image_dir = os.path.join(dataset_root, "train", "images")
     train_json_dir = os.path.join(dataset_root, "train", "graphs")
     test_image_dir = os.path.join(dataset_root, "test", "images")
     test_json_dir = os.path.join(dataset_root, "test", "graphs")
 
-    # Add debug prints
     print(f"Looking for images in: {train_image_dir}")
     print(f"Directory exists: {os.path.exists(train_image_dir)}")
     full_train_ds = AstroImageDataset(train_image_dir, train_json_dir, model_id)
     labels = full_train_ds.df["label"].values
     idxs = list(range(len(full_train_ds)))
 
-    # Split into train/val
     train_idx, val_idx = train_test_split(
         idxs, test_size=0.2, stratify=labels, random_state=42
     )
     train_ds = Subset(full_train_ds, train_idx)
     val_ds = Subset(full_train_ds, val_idx)
-
-    # Load test dataset
     test_ds = AstroImageDataset(test_image_dir, test_json_dir, model_id)
 
     print(f"Train/Val/Test sizes: {len(train_ds)}/{len(val_ds)}/{len(test_ds)}")
@@ -250,7 +256,9 @@ def main(
             patience=patience,
             save_model=True,
             model_out=output_dir,
-            write_tb=True
+            write_tb=True,
+            alpha=best_cfg["alpha"],
+            gamma=best_cfg["gamma"],
         )
         print(f"[TUNED] Test ROC AUC: {final_auc:.4f}")
         ray.shutdown()
@@ -265,7 +273,9 @@ def main(
             patience=patience,
             save_model=True,
             model_out=output_dir,
-            write_tb=False
+            write_tb=False,
+            alpha=alpha,
+            gamma=gamma
         )
         print(f"[NO TUNE] Test ROC AUC: {final_auc:.4f}")
 

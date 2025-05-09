@@ -7,7 +7,7 @@ import torch
 import typer
 from ray import tune
 from ray.tune.schedulers import ASHAScheduler
-from sklearn.metrics import classification_report, average_precision_score
+from sklearn.metrics import classification_report, average_precision_score,roc_auc_score
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, Subset
 from torch.utils.tensorboard import SummaryWriter
@@ -43,9 +43,11 @@ def evaluate_auc(model, loader, device):
         ys.extend(batch['labels'].cpu().numpy())
         ps.extend(prob)
     try:
-        return average_precision_score(ys, ps)
+        pr = average_precision_score(ys, ps)
+        roc = roc_auc_score(ys, ps)
     except ValueError:
-        return 0.0
+        pr, roc = 0.0, 0.0
+    return pr, roc
 
 
 def run_single_train(
@@ -90,14 +92,14 @@ def run_single_train(
             total_loss += loss.item()
         avg_loss = total_loss / len(train_loader)
 
-        val_auc = evaluate_auc(model, val_loader, device)
-        print(f"Epoch {epoch}: Train Loss={avg_loss:.4f}, Val PR AUC={val_auc:.4f}")
+        pr_val, roc_val = evaluate_auc(model, val_loader, device)
+        print(f"Epoch {epoch}: Train Loss={avg_loss:.4f}, Val PR AUC={pr_val:.4f}")
 
         if writer:
             writer.add_scalar("Train/Loss", avg_loss, epoch)
-            writer.add_scalar("Val/PR_AUC", val_auc, epoch)
+            writer.add_scalar("Val/PR_AUC", pr_val, epoch)
 
-        early_stopping(-val_auc, model)
+        early_stopping(-pr_val, model)
         if early_stopping.early_stop:
             print("🏁 Early stopping")
             break
@@ -107,8 +109,8 @@ def run_single_train(
             model.save_pretrained(model_out)
             AutoTokenizer.from_pretrained(model_id).save_pretrained(model_out)
 
-    test_auc = evaluate_auc(model, test_loader, device)
-    print(f"Test PR AUC: {test_auc:.4f}")
+    pr_test, roc_test = evaluate_auc(model, test_loader, device)
+    print(f"Test PR AUC: {pr_test:.4f}, Test ROC AUC: {roc_test:.4f}")
 
     preds, labels = [], []
     model.eval()
@@ -121,7 +123,7 @@ def run_single_train(
     print(classification_report(labels, preds, target_names=["Real", "Fake"]))
     if writer:
         writer.close()
-    return test_auc
+    return pr_test, roc_test
 
 
 def train_fn_tune(config, model_id, train_ds, val_ds, epochs: int = 5):
@@ -144,8 +146,8 @@ def train_fn_tune(config, model_id, train_ds, val_ds, epochs: int = 5):
             loss.backward()
             optimizer.step()
 
-    auc = evaluate_auc(model, val_loader, device)
-    tune.report({"val_roc_auc": auc})
+    pr, roc = evaluate_auc(model, val_loader, device)
+    tune.report({"val_pr_auc": pr, "val_roc_auc": roc})
 
 
 def hyperparam_search(model_id, train_ds, val_ds, num_samples: int, max_epochs: int, out_cfg: str):
@@ -213,7 +215,7 @@ def main(
         ray.init(ignore_reinit_error=True)
         cfg_path = os.path.join(output_dir, "best_text_config.json")
         best_cfg = hyperparam_search(model_id, train_ds, val_ds, tune_samples, tune_epochs, cfg_path)
-        final_auc = run_single_train(
+        final_pr, final_roc = run_single_train(
             train_ds, val_ds, test_ds,
             model_id=model_id,
             lr=best_cfg["lr"],
@@ -227,10 +229,10 @@ def main(
             alpha=best_cfg["alpha"],
             gamma=best_cfg["gamma"],
         )
-        print(f"[TUNED] Test PR AUC: {final_auc:.4f}")
+        print(f"[TUNED] Test PR AUC: {final_pr:.4f}, Test ROC AUC: {final_roc:.4f}")
         ray.shutdown()
     else:
-        final_auc = run_single_train(
+        final_pr, final_roc = run_single_train(
             train_ds, val_ds, test_ds,
             model_id=model_id,
             lr=lr,
@@ -244,7 +246,7 @@ def main(
             alpha=alpha,
             gamma=gamma
         )
-        print(f"[NO TUNE] Test PR AUC: {final_auc:.4f}")
+        print(f"[NO TUNE] Test PR AUC: {final_pr:.4f}, Test ROC AUC : {final_roc:.4f} ")
 
 if __name__ == "__main__":
     app()
